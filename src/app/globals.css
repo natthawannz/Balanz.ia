@@ -12,7 +12,9 @@
   --border: #B0E0E6;
   --hover: #4CAF50;
 }
-
+.bg-app-gradient {
+  background: linear-gradient(135deg, #e0e7ff 0%, #f0fdfa 60%, #fef9c3 100%);
+}
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -1,8 +1,8 @@
 @echo off
 REM เปิด frontend (Next.js) ในหน้าต่างแรก
-start cmd /k "cd /d C:\dev\SAVEi\SAVEi && npm run dev"
+start cmd /k "cd  C:\dev\seveiZ && npm run dev"
 
 REM เปิด backend (Node.js) ในหน้าต่างที่สอง
-start cmd /k "cd /d C:\dev\SAVEi\SAVEi\backend && node index.js"
+start cmd /k "cd  C:\dev\seveiZ\backend && node index.js"
 
 exit

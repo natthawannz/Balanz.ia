@@ -17,7 +17,6 @@ export default function Login() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      console.log('Login response:', data);
       if (res.ok) {
         localStorage.setItem('token', data.token);
         window.location.href = '/dashboard';
@@ -25,56 +24,53 @@ export default function Login() {
         setError(data.message || 'Failed to login');
       }
     } catch (error) {
-      console.error('Login error:', error);
       setError('Failed to login: ' + error.message);
     }
   };
 
   return (
-    <div className=" bg-[#BDF2F4] flex items-center justify-center p-4 rounded-lg">
-      <div className="bg-white white:bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <div className="flex justify-center mb-6">
-          <Image src="/logo.png" alt="SAVEi Logo" width={100} height={100} className="object-contain" />
-        </div>
-      <h1 style={{ color: '#00C8D2' }} className="text-3xl font-bold text-center mb-6">
-  ยินดีต้อนรับสู่ SAVEi
-</h1>
-
-
-        {error && <p className="text-red-600 white:text-red-400 text-center mb-4">{error}</p>}
+<main className="bg-app-gradient min-h-screen flex items-center justify-center">
+  <div className="glass-card p-10 w-full max-w-md animate-fade-in">
+    <div className="flex justify-center mb-6">
+      <Image src="/logo.png" alt="Logo" width={80} height={80} />
+    </div>
+        <h1 className="text-3xl font-extrabold text-center mb-6 text-[#00C8D2] drop-shadow">ยินดีต้อนรับสู่ SAVEi</h1>
+        {error && <p className="text-red-600 text-center mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 white:text-gray-300 mb-1">อีเมล</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-gray-300 white:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 white:focus:ring-green-400 bg-white white:bg-gray-700 text-gray-900 white:text-white"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00C8D2] bg-white text-gray-900 shadow transition-all duration-200"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 white:text-gray-300 mb-1">รหัสผ่าน</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-300 white:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 white:focus:ring-green-400 bg-white white:bg-gray-700 text-gray-900 white:text-white"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00C8D2] bg-white text-gray-900 shadow transition-all duration-200"
               required
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 white:bg-green-500 white:hover:bg-green-600"
+            className="w-full bg-gradient-to-r from-[#38bdf8] to-[#00C8D2] text-white p-3 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform duration-200"
           >
             เข้าสู่ระบบ
           </button>
-          
-          <p className="text-center text-gray-600 white:text-gray-400">
-            ยังไม่มีบัญชี? <Link href="/register" className="text-green-600 white:text-green-400 hover:underline">สมัครสมาชิก</Link>
+          <p className="text-center text-gray-600">
+            ยังไม่มีบัญชี?{' '}
+            <Link href="/register" className="text-[#00C8D2] hover:underline font-semibold">
+              สมัครสมาชิก
+            </Link>
           </p>
         </form>
       </div>
-    </div>
+    </main>
   );
 }
