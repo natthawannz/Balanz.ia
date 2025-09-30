@@ -12,9 +12,7 @@
   --border: #B0E0E6;
   --hover: #4CAF50;
 }
-.bg-app-gradient {
-  background: linear-gradient(135deg, #e0e7ff 0%, #f0fdfa 60%, #fef9c3 100%);
-}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -27,14 +25,22 @@
   --foreground: #d1d5db;
   --text: #d1d5db;
   --border: #4b5563;
-  --hover: #66BB6A;
+  --hover: #10B981;
 }
 
 body {
-  background-color: var(--background);
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #BDF2F4, #F0FFF4, #FFFDD0);
+  background-attachment: fixed; /* ให้พื้นหลัง fix เต็มจอ */
   color: var(--text);
-  font-family: var(--font-sans), sans-serif;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode */
+.dark body {
+  background: linear-gradient(to bottom right, #1e293b, #334155, #0f172a);
+  background-attachment: fixed;
+  color: var(--text);
 }
 
 header {

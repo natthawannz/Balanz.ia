@@ -78,7 +78,7 @@ export default function Dashboard() {
   };
 
 return (
-  <main className="container mx-auto px-6 py-8 bg-gradient-to-br from-[#e0e7ff] via-[#f0fdfa] to-[#fef9c3] min-h-screen">
+  <main className="container mx-auto px-6 py-8 min-h-screen">
     {/* Stats Cards */}
     {error ? (
       <p className="text-red-600 mb-8">{error}</p>
