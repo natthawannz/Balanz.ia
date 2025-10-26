@@ -126,8 +126,15 @@ export default function Dashboard() {
     <main className="min-h-screen bg-[#F5F5F5]">
       <div className="max-w-5xl mx-auto px-6 py-8">
         
+        {/* Header - ตรงกับภาพ */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-slate-800 mb-1">
+            Hello {displayName}
+          </h1>
+          <p className="text-sm text-slate-500">{formatDate()}</p>
+        </div>
 
-        {/* Month Navigation - */}
+        {/* Month Navigation - ตรงตามภาพ */}
         <div className="mb-8">
           <p className="text-xs text-slate-500 mb-3 uppercase tracking-wide">Month</p>
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-6 py-4 flex items-center justify-between max-w-xs">
@@ -155,7 +162,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Cards -  */}
+        {/* Stats Cards - เหมือนภาพ 100% */}
         {error ? (
           <p className="text-red-600 mb-8 p-4 bg-red-50 rounded-lg">{error}</p>
         ) : (
@@ -199,7 +206,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Floating Add Button - */}
+        {/* Floating Add Button - เหมือนภาพ */}
         <button
           onClick={() => (window.location.href = '/transactions/add')}
           className="fixed right-8 bottom-8 w-16 h-16 rounded-full bg-[#299D91] shadow-lg text-white flex items-center justify-center hover:bg-[#238A80] transition-all duration-300 hover:scale-110 z-50"
@@ -210,7 +217,7 @@ export default function Dashboard() {
           </svg>
         </button>
 
-        {/* Recent Transactions -  */}
+        {/* Recent Transactions - เหมือนภาพ */}
         <div className="mb-8">
           <p className="text-xs text-slate-500 mb-4 uppercase tracking-wide">Recent Transactions</p>
           

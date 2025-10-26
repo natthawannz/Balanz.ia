@@ -222,9 +222,6 @@ export default function RootLayout({ children }) {
                     <NavLink href="/currency" icon={<img src="/icons/exchange.png" alt="" className="w-5 h-5" />}>
                       อัตราแลกเปลี่ยน
                     </NavLink>
-                    <NavLink href="/tax" icon={<img src="/icons/tax.png" alt="" className="w-5 h-5" />}>
-                      คำนวณภาษี
-                    </NavLink>
                     <NavLink href="/analytics" icon={<img src="/icons/bars.png" alt="" className="w-5 h-5" />}>
                       สรุปและวิเคราะห์
                     </NavLink>
@@ -381,13 +378,6 @@ export default function RootLayout({ children }) {
                     icon={<img src="/icons/exchange.png" alt="" className="w-6 h-6" />}
                   >
                     อัตราแลกเปลี่ยน
-                  </MobileNavLink>
-                  <MobileNavLink 
-                href="/tax"
-                onClick={toggleMenu}
-                    icon={<img src="/icons/tax.png" alt="" className="w-6 h-6" />}
-                  >
-                    คำนวณภาษี
                   </MobileNavLink>
                   <MobileNavLink 
                 href="/analytics"

@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-// 👈 NEW IMPORT: Import the CategoryPopup component
 import CategoryPopup from './CategoryPopup'; 
 
 export default function AddTransaction() {
@@ -19,14 +18,13 @@ export default function AddTransaction() {
   const [transcript, setTranscript] = useState('');
   const [recognition, setRecognition] = useState(null);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
-  // Slip upload + OCR removed for simplified UX
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('🍽️');
   const [newCategoryType, setNewCategoryType] = useState('expense');
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [selectedCategoryGroup, setSelectedCategoryGroup] = useState('สารสาธารณูปโภค');
-
+  const [selectedTag, setSelectedTag] = useState('');
 
   const availableIcons = [
     { value: ['💡', '🚰', '🔥', '📶', '🛢️', '🔌', '📡', '💧', '⚡'], label: 'สารสาธารณูปโภค' },
@@ -89,7 +87,6 @@ export default function AddTransaction() {
         let updatedCategories = data || [];
         setCategories(updatedCategories);
         
-        // Try to set the category field only if the form's current category is empty
         if (!formData.category) {
             const defaultCat = updatedCategories.find(cat => cat.type === formData.type) || updatedCategories[0];
             if (defaultCat) {
@@ -148,14 +145,12 @@ export default function AddTransaction() {
   const deleteCategory = async (categoryId) => {
     const token = localStorage.getItem('token');
     try {
-      // ตรวจสอบว่าหมวดหมู่ถูกใช้งานในงบประมาณหรือไม่
       const budgetRes = await fetch('http://localhost:5000/api/budgets', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const budgetData = await budgetRes.json();
 
       if (budgetRes.ok) {
-        // Find if this category ID is used in any budget
         const isUsedInBudget = budgetData.some(
           budget => budget.category && String(budget.category._id) === String(categoryId)
         );
@@ -167,7 +162,6 @@ export default function AddTransaction() {
           return;
         }
 
-        // ถ้าไม่ถูกใช้งาน ให้ถามยืนยันลบ
         if (
           window.confirm(
             `คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่ "${categories.find(cat => cat._id === categoryId)?.name}"? การลบจะรวมถึงการลบข้อมูลประวัติหมวดหมู่ในรายการธุรกรรมด้วย`
@@ -180,7 +174,6 @@ export default function AddTransaction() {
 
           if (res.ok) {
             await fetchCategories(token);
-            // If the deleted category was selected, reset to a new default
             if (formData.category === categoryId) {
               const remainingCategories = categories.filter(cat => cat.type === formData.type && cat._id !== categoryId);
               const newDefaultCat = remainingCategories[0];
@@ -196,7 +189,6 @@ export default function AddTransaction() {
       setError('เกิดข้อผิดพลาด: ' + error.message);
     }
   };
-
 
   const selectCategory = (categoryId) => {
     setFormData(prev => ({ ...prev, category: categoryId }));
@@ -246,14 +238,12 @@ export default function AddTransaction() {
       newFormData.type = 'expense';
     }
 
-    // Find category based on the determined type
     const potentialCategory = categories.find(cat => 
         lowerText.includes(cat.name.toLowerCase()) && cat.type === newFormData.type
     );
     if (potentialCategory) {
         newFormData.category = potentialCategory._id;
     }
-
 
     const notesMatch = lowerText.match(/(หมายเหตุ|สำหรับ)\s*([\s\S]*)/);
     if (notesMatch) {
@@ -262,8 +252,6 @@ export default function AddTransaction() {
 
     setFormData(newFormData);
   };
-
-  // Removed OCR handlers
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -282,7 +270,6 @@ export default function AddTransaction() {
         return;
     }
     
-    // Check if the date is in the future
     const today = new Date().toISOString().split('T')[0];
     if (formData.date > today) {
       setError('วันที่ต้องไม่เกินวันปัจจุบัน');
@@ -327,15 +314,26 @@ export default function AddTransaction() {
     return null;
   }
 
+  const selectedCategory = categories.find(cat => cat._id === formData.category);
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} / ${month} / ${year}`;
+  };
+
   return (
-    <main className="container mx-auto px-6 py-8" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
+    <main className="min-h-screen bg-[#F5F5F5]" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
       <div className="bg-white rounded-2xl shadow-lg max-w-2xl mx-auto overflow-hidden">
         {/* Header bar */}
         <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b">
-          <Link href="/dashboard" className="text-[#299D91] font-semibold">Cancel</Link>
+          <Link href="/dashboard" className="text-[#299D91] font-semibold hover:underline">Cancel</Link>
           <h2 className="text-lg font-bold text-gray-800">บันทึกรายรับ-รายจ่าย</h2>
-          <button form="txn-form" type="submit" className="text-[#299D91] font-semibold">Save</button>
+          <button form="txn-form" type="submit" className="text-[#299D91] font-semibold hover:underline">Save</button>
         </div>
+
         {error && (
           <div className="bg-red-100 text-red-600 p-3 rounded-lg m-6 flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -344,9 +342,11 @@ export default function AddTransaction() {
             {error}
           </div>
         )}
+
         <form id="txn-form" onSubmit={handleSubmit} className="space-y-5 p-6">
+          {/* Amount */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">จำนวนเงิน (บาท)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">จำนวนเงิน (บาท)</label>
             <input
               type="number"
               step="1"
@@ -358,61 +358,77 @@ export default function AddTransaction() {
                   amount: e.target.value < 0 ? 0 : e.target.value, 
                 })
               }
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-gray-700"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-gray-700"
               placeholder="เช่น 500"
               required
             />
           </div>
 
+          {/* Type Toggle */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">ประเภท</label>
-            <div className="inline-flex bg-gray-200 rounded-lg overflow-hidden">
+            <label className="block text-sm font-medium text-gray-700 mb-2">ประเภท</label>
+            <div className="inline-flex bg-gray-200 rounded-lg overflow-hidden border border-gray-200">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'income' })}
-                className={`px-5 py-2 font-semibold ${formData.type==='income' ? 'bg-[#299D91] text-white' : 'text-gray-700'}`}
-              >รายรับ</button>
+                className={`px-5 py-3 font-semibold transition-colors ${formData.type==='income' ? 'bg-[#299D91] text-white' : 'bg-white text-gray-700'}`}
+              >
+                รายรับ
+              </button>
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'expense' })}
-                className={`px-5 py-2 font-semibold ${formData.type==='expense' ? 'bg-[#299D91] text-white' : 'text-gray-700'}`}
-              >รายจ่าย</button>
+                className={`px-5 py-3 font-semibold transition-colors ${formData.type==='expense' ? 'bg-[#299D91] text-white' : 'bg-white text-gray-700'}`}
+              >
+                รายจ่าย
+              </button>
             </div>
           </div>
 
-          {/* 👈 CORRECT USAGE OF CATEGORY POPUP COMPONENT */}
+          {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">หมวดหมู่</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">หมวดหมู่</label>
             <CategoryPopup
-                categories={categories}
-                formData={formData}
-                selectCategory={selectCategory}
-                deleteCategory={deleteCategory}
-                setShowAddCategoryModal={setShowAddCategoryModal}
+              categories={categories}
+              formData={formData}
+              selectCategory={selectCategory}
+              deleteCategory={deleteCategory}
+              setShowAddCategoryModal={setShowAddCategoryModal}
             />
           </div>
-          {/* ---------------------------------------------------- */}
 
+          {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">วันที่</label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
-              required
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">วันที่</label>
+            <div className="relative">
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-gray-700"
+                required
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
+                </svg>
+              </div>
+            </div>
           </div>
+
+          {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">หมายเหตุ (ถ้ามี)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">โน็ต (ถ้ามี)</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="เช่น ซื้ออาหารที่ร้าน"
-              rows="4"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-gray-700"
+              placeholder="เช่น ซื้ออาหารที่ร้าน ศศิ"
+              rows="3"
             />
           </div>
+
+          {/* Voice Recording */}
           {isSpeechSupported && (
             <div>
               <button
@@ -420,8 +436,6 @@ export default function AddTransaction() {
                 onClick={isRecording ? stopRecording : startRecording}
                 className="w-full p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors text-white"
                 style={{ backgroundColor: isRecording ? '#d8c2c2' : '#00C8D2' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isRecording ? '#c0b0b0' : '#00A3B3'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isRecording ? '#d8c2c2' : '#00C8D2'}
               >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7.001 7.001 0 006 6.93V17a1 1 0 102 0v-2.07z" clipRule="evenodd" />
@@ -435,114 +449,111 @@ export default function AddTransaction() {
               )}
             </div>
           )}
-          {/* Removed slip upload/OCR section for simpler UX */}
-          <div className="flex space-x-4">
+
+          {/* Action Buttons */}
+          <div className="flex space-x-4 pt-4">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+              className="flex-1 px-6 py-3 bg-[#299D91] text-white rounded-lg hover:bg-[#238A80] transition-colors disabled:bg-gray-400 font-semibold"
             >
-              {loading ? 'กำลังบันทึก...' : 'บันทึกธุรกรรม'}
+              {loading ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>
             <Link
               href="/dashboard"
-              className="flex-1 p-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-center transition-colors"
+              className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-center transition-colors font-semibold"
             >
               ยกเลิก
             </Link>
           </div>
         </form>
+      </div>
 
-        {/* Removed OCR confirmation modal */}
-
-
-        {showAddCategoryModal && (
+      {/* Add Category Modal */}
+      {showAddCategoryModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20"
+          onClick={() => {
+            setShowAddCategoryModal(false);
+            setNewCategory('');
+            setSelectedIcon('🍽️');
+            setNewCategoryType('expense');
+            setSelectedCategoryGroup('สารสาธารณูปโภค');
+          }}
+        >
           <div
-            className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20 z-50 p-4"
-            onClick={() => {
-              // คลิกพื้นที่นอก popup
-              setShowAddCategoryModal(false);
-              setNewCategory('');
-              setSelectedIcon('🍽️');
-              setNewCategoryType('expense');
-              setSelectedCategoryGroup('สารสาธารณูปโภค');
-            }}
+            className="bg-white rounded-2xl p-8 max-w-2xl mx-auto shadow-2xl w-full"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="bg-white rounded-2xl p-8 max-w-2xl mx-auto shadow-2xl"
-              onClick={(e) => e.stopPropagation()} // ป้องกันการปิด popup เมื่อคลิกภายใน
-            >
-              <h3 className="text-2xl font-semibold text-gray-800 mb-6">เพิ่มหมวดหมู่ใหม่</h3>
-              <div className="space-y-6">
-                <input
-                  type="text"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  placeholder="ชื่อหมวดหมู่ใหม่"
-                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-lg text-gray-700"
-                />
-                <select
-                  value={selectedCategoryGroup}
-                  onChange={(e) => setSelectedCategoryGroup(e.target.value)}
-                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-lg text-gray-700"
-                >
-                  {availableIcons.map((group) => (
-                    <option key={group.label} value={group.label}>
-                      {group.label}
-                    </option>
+            <h3 className="text-2xl font-semibold text-gray-800 mb-6">เพิ่มหมวดหมู่ใหม่</h3>
+            <div className="space-y-6">
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="ชื่อหมวดหมู่ใหม่"
+                className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-lg text-gray-700"
+              />
+              <select
+                value={selectedCategoryGroup}
+                onChange={(e) => setSelectedCategoryGroup(e.target.value)}
+                className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-lg text-gray-700"
+              >
+                {availableIcons.map((group) => (
+                  <option key={group.label} value={group.label}>
+                    {group.label}
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-6 gap-2 h-36 overflow-y-auto p-2 border rounded-lg">
+                {availableIcons
+                  .find((group) => group.label === selectedCategoryGroup)
+                  ?.value.map((icon) => (
+                    <button
+                      key={icon}
+                      onClick={() => setSelectedIcon(icon)}
+                      type="button"
+                      className={`w-12 h-12 rounded-lg flex items-center justify-center text-3xl ${selectedIcon === icon ? 'bg-[#299D91] text-white' : 'bg-white hover:bg-gray-100'
+                        } border border-gray-200 transition-colors shadow-sm`}
+                    >
+                      {icon}
+                    </button>
                   ))}
-                </select>
-                <div className="grid grid-cols-6 gap-2 h-36 overflow-y-auto p-2 border rounded-lg">
-                  {availableIcons
-                    .find((group) => group.label === selectedCategoryGroup)
-                    ?.value.map((icon) => (
-                      <button
-                        key={icon}
-                        onClick={() => setSelectedIcon(icon)}
-                        type="button" // Important to prevent form submission
-                        className={`w-12 h-12 rounded-lg flex items-center justify-center text-3xl ${selectedIcon === icon ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-100'
-                          } border border-gray-200 transition-colors shadow-sm`}
-                      >
-                        {icon}
-                      </button>
-                    ))}
-                </div>
-                <select
-                  value={newCategoryType}
-                  onChange={(e) => setNewCategoryType(e.target.value)}
-                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-lg text-gray-700"
-                >
-                  <option value="income">รายรับ</option>
-                  <option value="expense">รายจ่าย</option>
-                </select>
               </div>
-              <div className="flex space-x-6 mt-8">
-                <button
-                  type="button"
-                  onClick={addCategory}
-                  className="flex-1 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-medium"
-                >
-                  ยืนยัน
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddCategoryModal(false);
-                    setNewCategory('');
-                    setSelectedIcon('🍽️');
-                    setNewCategoryType('expense');
-                    setSelectedCategoryGroup('สารสาธารณูปโภค');
-                  }}
-                  className="flex-1 p-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-lg font-medium"
-                >
-                  ยกเลิก
-                </button>
-              </div>
+              <select
+                value={newCategoryType}
+                onChange={(e) => setNewCategoryType(e.target.value)}
+                className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-lg text-gray-700"
+              >
+                <option value="income">รายรับ</option>
+                <option value="expense">รายจ่าย</option>
+              </select>
+            </div>
+            <div className="flex space-x-6 mt-8">
+              <button
+                type="button"
+                onClick={addCategory}
+                className="flex-1 p-4 bg-[#299D91] text-white rounded-lg hover:bg-[#238A80] transition-colors text-lg font-medium"
+              >
+                ยืนยัน
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddCategoryModal(false);
+                  setNewCategory('');
+                  setSelectedIcon('🍽️');
+                  setNewCategoryType('expense');
+                  setSelectedCategoryGroup('สารสาธารณูปโภค');
+                }}
+                className="flex-1 p-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-lg font-medium"
+              >
+                ยกเลิก
+              </button>
             </div>
           </div>
-        )}
-
-      </div>
+        </div>
+      )}
     </main>
   );
 }

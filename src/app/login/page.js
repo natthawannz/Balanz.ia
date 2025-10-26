@@ -11,15 +11,33 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      // รองรับทั้ง JSON และข้อความดิบ กรณีเซิร์ฟเวอร์ส่งไม่ถูกต้อง
+      const raw = await res.text();
+      let data;
+      try { data = JSON.parse(raw); } catch { data = { message: raw }; }
       console.log('Login response:', data);
       if (res.ok) {
-        localStorage.setItem('token', data.token);
+        // รองรับหลายรูปแบบของชื่อฟิลด์ token จาก backend
+        const token = (
+          data?.token ||
+          data?.accessToken ||
+          data?.access_token ||
+          data?.jwt ||
+          data?.data?.token ||
+          data?.user?.token
+        );
+
+        if (!token) {
+          throw new Error('ไม่พบโทเค็นจากเซิร์ฟเวอร์');
+        }
+
+        localStorage.setItem('token', token);
         const nameFromApi = data?.name || data?.user?.name || data?.user?.displayName;
         const emailFromApi = data?.email || data?.user?.email;
         if (nameFromApi) {
@@ -30,11 +48,15 @@ export default function Login() {
         }
         window.location.href = '/dashboard';
       } else {
-        setError(data.message || 'Failed to login');
+        const msgFromServer = data?.message;
+        const msg = res.status >= 500
+          ? `เซิร์ฟเวอร์ขัดข้อง (${res.status})`
+          : (msgFromServer || `เข้าสู่ระบบไม่สำเร็จ (${res.status})`);
+        setError(msg);
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError('Failed to login: ' + error.message);
+      setError('เข้าสู่ระบบไม่สำเร็จ: ' + (error?.message || 'ไม่ทราบสาเหตุ'));
     }
   };
 

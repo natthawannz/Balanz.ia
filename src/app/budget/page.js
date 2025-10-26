@@ -194,183 +194,173 @@ export default function Budget() {
   ];
 
   return (
-    <main className="container mx-auto px-6 py-8" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-          <svg className="w-6 h-6 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-          </svg>
-          ระบบจัดการงบประมาณ
-        </h1>
-        {error && (
-          <div className="bg-red-100 text-red-600 p-3 rounded-lg mb-4 flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" />
-            </svg>
-            {error}
-          </div>
-        )}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 0))} // ย้อนหลังได้ถึงเดือนแรก
-              className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
-              </svg>
-            </button>
-            <h2 className="text-xl font-semibold text-gray-800">{selectedMonth}</h2>
-            <button
-              onClick={() => setCurrentMonthIndex((prev) => (prev < months.length - 1 ? prev + 1 : months.length - 1))} // ไปข้างหน้าได้ถึงเดือนสุดท้าย
-              className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
-              </svg>
-            </button>
-          </div>
-          {budgets[selectedMonth] && (
-            <div>
-              <div className="mt-6 p-4 bg-gray-100 rounded-lg text-gray-700">
-                <h3 className="text-md font-semibold text-gray-800 mb-2">ภาพรวมงบประมาณ</h3>
-                <p><strong>งบประมาณทั้งหมด:</strong> {formatNumber(calculateTotals(selectedMonth).totalBudget.toFixed(0))} บาท</p>
-                <p><strong>รายจายรวมทั้งหมด:</strong> {formatNumber(calculateTotals(selectedMonth).totalSpent.toFixed(0))} บาท</p>
-                <p><strong>คงเหลือ:</strong> {formatNumber(calculateTotals(selectedMonth).remaining.toFixed(0))} บาท</p>
-              </div>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 mt-6">{selectedMonth}</h2>
-              {budgets[selectedMonth]?.map((category, index) => {
-                const catTransactions = transactions.filter(t => {
-                  const tDate = new Date(t.date);
-                  const tMonthYear = `${monthNames[tDate.getMonth()]} ${tDate.getFullYear() + 543}`;
-                  return tMonthYear === selectedMonth && t.category._id.toString() === category._id.toString();
-                });
-                const spent = catTransactions.reduce((sum, t) => sum + t.amount, 0);
-                const remaining = (category.total || 0) - spent;
-
-                return (
-                  <div key={category._id} className="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-                    {/* แถวบน: Icon + ชื่อหมวด */}
-                    <div className="flex items-center mb-2 sm:mb-0">
-                      <span className="text-2xl mr-2">{category.icon}</span>
-                      <span className="font-medium text-gray-700">{category.name}</span>
-                    </div>
-
-                    {/* แถวล่าง: Input + ใช้ไป + คงเหลือ */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 flex-1">
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        value={category.total || ''}
-                        onChange={(e) => handleTotalChange(index, e.target.value, selectedMonth)}
-                        className="w-full sm:w-24 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700 mb-2 sm:mb-0"
-                        placeholder="ยอดรวม"
-                      />
-                      <span className="text-gray-800 text-sm">ใช้ไป: {formatNumber(spent.toFixed(0))} บาท</span>
-                      <span className="text-gray-800 text-sm">คงเหลือ: {formatNumber(remaining.toFixed(0))} บาท</span>
-                    </div>
-
-                    {/* ปุ่ม Delete */}
-                    <button
-                      onClick={() => handleDeleteBudget(category._id, selectedMonth)}
-                      className="mt-2 sm:mt-0 ml-auto p-2 bg-gray-200 text-white rounded-full hover:bg-red-700 transition-colors flex items-center justify-center"
-                      title="ลบงบประมาณ"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                );
-              })}
-
+    <main className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
+      <div className="bg-white rounded-2xl shadow-lg max-w-md w-full mx-auto overflow-hidden flex flex-col h-96">
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b">
+          <Link href="/dashboard" className="text-[#299D91] font-semibold hover:underline">Cancel</Link>
+          <h2 className="text-lg font-bold text-gray-800">ตั้งเป้าหมายงบ</h2>
+          <div></div>
+        </div>
+        
+        {/* Main content area - centered vertically */}
+        <div className="flex-1 flex items-center justify-center px-6">
+          <div className="w-full space-y-8">
+            {/* Month Navigation */}
+            <div className="flex items-center justify-center space-x-8">
+              <button
+                onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 0))}
+                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+                </svg>
+              </button>
+              <h2 className="text-xl font-semibold text-[#299D91]">{selectedMonth.split(' ')[0]}</h2>
+              <button
+                onClick={() => setCurrentMonthIndex((prev) => (prev < months.length - 1 ? prev + 1 : months.length - 1))}
+                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+                </svg>
+              </button>
             </div>
-          )}
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => setShowAddBudgetModal(true)}
-              className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              เพิ่มงบประมาณ
-            </button>
-          </div>
-          <div className="flex space-x-4 mt-6">
-            <Link
-              href="/"
-              className="flex-1 p-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-center transition-colors"
-            >
-              กลับ
-            </Link>
+
+            {/* Action Buttons */}
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setShowAddBudgetModal(true)}
+                className="w-full bg-[#299D91] text-white py-3 rounded-lg hover:bg-[#238A80] transition-colors font-medium"
+              >
+                เพิ่มเป้าหมาย
+              </button>
+              <Link
+                href="/dashboard"
+                className="w-full bg-white text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 text-center transition-colors font-medium block"
+              >
+                กลับ
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       {showAddBudgetModal && (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50"
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/30"
           onClick={() => setShowAddBudgetModal(false)}
         >
           <div
-            className="bg-white rounded-2xl p-8 max-w-2xl mx-4 shadow-2xl"
+            className="bg-white rounded-3xl p-8 max-w-md mx-auto shadow-2xl w-full transform transition-all duration-300 scale-95"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-2xl font-semibold text-gray-800 mb-6">เพิ่มงบประมาณ</h3>
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#299D91] to-[#238A80] shadow-xl shadow-[#299D91]/30 mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">เพิ่มเป้าหมาย</h3>
+              <p className="text-gray-500 text-sm">ตั้งงบประมาณสำหรับหมวดหมู่ที่ต้องการ</p>
+            </div>
+
+            {/* Form */}
             <form onSubmit={handleAddBudget} className="space-y-6">
               <div>
-                <label className="block text-lg font-medium text-gray-700 mb-2">หมวดหมู่</label>
-                <select
-                  name="category"
-                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-lg text-gray-700"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name} {cat.icon}
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                  <svg className="w-4 h-4 text-[#299D91] mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
+                  </svg>
+                  หมวดหมู่
+                </label>
+                <div className="relative">
+                  <select
+                    name="category"
+                    className="w-full px-4 py-4 rounded-xl border-2 border-gray-200 bg-white focus:border-[#299D91] focus:ring-4 focus:ring-[#299D91]/10 transition-all duration-200 text-gray-700 font-medium appearance-none cursor-pointer"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.icon} {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
+
               <div>
-                <label className="block text-lg font-medium text-gray-700 mb-2">เดือน</label>
-                <select
-                  name="month"
-                  value={selectedMonth}
-                  onChange={(e) => {
-                    setCurrentMonthIndex(months.indexOf(e.target.value));
-                  }}
-                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-lg text-gray-700"
-                >
-                  {months.slice(currentMonthIndex).map((month, index) => (
-                    <option key={index} value={month}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                  <svg className="w-4 h-4 text-[#299D91] mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
+                  </svg>
+                  เดือน
+                </label>
+                <div className="relative">
+                  <select
+                    name="month"
+                    value={selectedMonth}
+                    onChange={(e) => {
+                      setCurrentMonthIndex(months.indexOf(e.target.value));
+                    }}
+                    className="w-full px-4 py-4 rounded-xl border-2 border-gray-200 bg-white focus:border-[#299D91] focus:ring-4 focus:ring-[#299D91]/10 transition-all duration-200 text-gray-700 font-medium appearance-none cursor-pointer"
+                  >
+                    {months.map((month, index) => (
+                      <option key={index} value={month}>
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
+
               <div>
-                <label className="block text-lg font-medium text-gray-700 mb-2">ยอดรวม (บาท)</label>
-                <input
-                  type="number"
-                  name="total"
-                  step="1"
-                  min="0"
-                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-lg text-gray-700"
-                  placeholder="เช่น 5000"
-                  required
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                  <svg className="w-4 h-4 text-[#299D91] mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd"/>
+                  </svg>
+                  ยอดรวม (บาท)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="text-gray-500 font-medium">฿</span>
+                  </div>
+                  <input
+                    type="number"
+                    name="total"
+                    step="1"
+                    min="0"
+                    className="w-full pl-8 pr-4 py-4 rounded-xl border-2 border-gray-200 bg-white focus:border-[#299D91] focus:ring-4 focus:ring-[#299D91]/10 transition-all duration-200 text-gray-700 font-medium"
+                    placeholder="เช่น 5000"
+                    required
+                  />
+                </div>
               </div>
-              <div className="flex space-x-6 mt-8">
+
+              {/* Action Buttons */}
+              <div className="flex space-x-4 mt-8">
                 <button
                   type="submit"
-                  className="flex-1 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-medium"
+                  className="flex-1 bg-gradient-to-r from-[#299D91] to-[#238A80] text-white py-4 rounded-xl hover:from-[#238A80] hover:to-[#1f6b63] transition-all duration-300 font-bold text-lg shadow-xl shadow-[#299D91]/30 hover:shadow-2xl hover:shadow-[#299D91]/40 transform hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  ยืนยัน
+                  บันทึกเป้าหมาย
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddBudgetModal(false)}
-                  className="flex-1 p-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-lg font-medium"
+                  className="flex-1 bg-gray-100 text-gray-700 py-4 rounded-xl hover:bg-gray-200 transition-all duration-300 font-bold text-lg border-2 border-gray-200 hover:border-gray-300"
                 >
                   ยกเลิก
                 </button>

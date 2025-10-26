@@ -23,14 +23,12 @@ export default function CategoryPopup({ categories, formData, selectCategory, de
         <button
           type="button"
           onClick={() => setShowPopup(true)}
-          className="w-full mt-1 p-3 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-between"
+          className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xl">
-              {selectedCategory ? selectedCategory.icon : '🗂️'}
-            </div>
+            <span className="text-2xl">{selectedCategory?.icon || '🗂️'}</span>
             <span className={`font-medium ${selectedCategory ? 'text-gray-800' : 'text-gray-500'}`}>
-              {selectedCategory ? selectedCategory.name : 'เลือกหมวดหมู่'}
+              {selectedCategory?.name || 'เลือกหมวดหมู่'}
             </span>
           </div>
           <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -40,22 +38,15 @@ export default function CategoryPopup({ categories, formData, selectCategory, de
         <button
           type="button"
           onClick={() => setShowAddCategoryModal(true)}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-gray-100 border border-gray-300 text-[#299D91] hover:bg-gray-200"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-[#299D91] text-white hover:bg-[#238A80] transition-colors"
         >
-          <span className="text-lg">#</span>
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
+          </svg>
           <span className="font-medium">เพิ่มแท็ก</span>
         </button>
       </div>
 
-      {!formData.category || !selectedCategory ? (
-          <p className="mt-2 text-sm text-red-500">
-              ⚠️ โปรดเลือกหมวดหมู่สำหรับประเภท**{formData.type === 'income' ? 'รายรับ' : 'รายจ่าย'}**
-          </p>
-      ) : (
-          <p className="mt-2 text-sm text-gray-600">
-              หมวดหมู่ปัจจุบัน: **{selectedCategory.icon} {selectedCategory.name}**
-          </p>
-      )}
 
 
       {/* Category Selection Popup/Modal */}
