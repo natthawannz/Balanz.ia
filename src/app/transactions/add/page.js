@@ -335,20 +335,8 @@ export default function AddTransaction() {
       <div className="max-w-xl mx-auto px-4 py-4 relative z-10">
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 overflow-hidden">
           {/* Header bar */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#299D91] to-[#238A80] text-white">
-            <Link href="/dashboard" className="font-semibold hover:underline flex items-center space-x-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span>Cancel</span>
-            </Link>
+          <div className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-[#299D91] to-[#238A80] text-white">
             <h2 className="text-base font-bold">บันทึกรายรับ-รายจ่าย</h2>
-            <button form="txn-form" type="submit" className="font-semibold hover:underline flex items-center space-x-1">
-              <span>Save</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </button>
           </div>
 
           {error && (

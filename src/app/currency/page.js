@@ -33,21 +33,27 @@ export default function Currency() {
     setError('');
 
     try {
-      const response = await fetch(
-        `https://v6.exchangerate-api.com/v6/YOUR_API_KEY/latest/${currencyFrom}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('ไม่สามารถดึงข้อมูลอัตราแลกเปลี่ยนได้');
-      }
+      // Mock exchange rates for demonstration
+      const mockRates = {
+        'THB': { 'USD': 0.027, 'EUR': 0.025, 'GBP': 0.021, 'JPY': 4.1, 'CNY': 0.19, 'SGD': 0.036, 'AUD': 0.041 },
+        'USD': { 'THB': 37.0, 'EUR': 0.92, 'GBP': 0.78, 'JPY': 151.5, 'CNY': 7.2, 'SGD': 1.35, 'AUD': 1.52 },
+        'EUR': { 'THB': 40.2, 'USD': 1.09, 'GBP': 0.85, 'JPY': 165.0, 'CNY': 7.8, 'SGD': 1.47, 'AUD': 1.65 },
+        'GBP': { 'THB': 47.3, 'USD': 1.28, 'EUR': 1.18, 'JPY': 194.0, 'CNY': 9.2, 'SGD': 1.73, 'AUD': 1.94 },
+        'JPY': { 'THB': 0.24, 'USD': 0.0066, 'EUR': 0.0061, 'GBP': 0.0052, 'CNY': 0.048, 'SGD': 0.0089, 'AUD': 0.01 },
+        'CNY': { 'THB': 5.1, 'USD': 0.14, 'EUR': 0.13, 'GBP': 0.11, 'JPY': 20.8, 'SGD': 0.19, 'AUD': 0.21 },
+        'SGD': { 'THB': 27.8, 'USD': 0.74, 'EUR': 0.68, 'GBP': 0.58, 'JPY': 112.0, 'CNY': 5.3, 'AUD': 1.12 },
+        'AUD': { 'THB': 24.8, 'USD': 0.66, 'EUR': 0.61, 'GBP': 0.52, 'JPY': 100.0, 'CNY': 4.7, 'SGD': 0.89 }
+      };
 
-      const data = await response.json();
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const rate = mockRates[currencyFrom]?.[currencyTo];
       
-      if (data.result === 'success') {
-        const rate = data.rates[currencyTo];
+      if (rate) {
         setExchangeRate(rate);
       } else {
-        throw new Error('ข้อมูลอัตราแลกเปลี่ยนไม่ถูกต้อง');
+        throw new Error('ไม่พบอัตราแลกเปลี่ยนสำหรับสกุลเงินนี้');
       }
     } catch (error) {
       setError(error.message);
@@ -79,28 +85,11 @@ export default function Currency() {
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-[#299D91] to-[#238A80] text-white p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-white/20 rounded-xl">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m0 0A7.5 7.5 0 0120 12.75M20 20v-5h-.581m0 0A7.5 7.5 0 014 11.25" />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold">อัตราแลกเปลี่ยนเงิน</h1>
-                  <p className="text-sm text-white/80">แปลงสกุลเงินแบบเรียลไทม์</p>
-                </div>
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-xl font-bold">อัตราแลกเปลี่ยนเงิน</h1>
+                <p className="text-sm text-white/80">แปลงสกุลเงินแบบเรียลไทม์</p>
               </div>
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={loading}
-                className="p-2 bg-white/20 rounded-xl hover:bg-white/30 transition-all duration-200 disabled:opacity-50"
-              >
-                <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m0 0A7.5 7.5 0 0120 12.75M20 20v-5h-.581m0 0A7.5 7.5 0 014 11.25" />
-                </svg>
-              </button>
             </div>
           </div>
 

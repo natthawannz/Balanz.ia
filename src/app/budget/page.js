@@ -6,7 +6,7 @@ export default function Budget() {
   const [categories, setCategories] = useState([]);
   const [budgets, setBudgets] = useState({});
   const [transactions, setTransactions] = useState([]);
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(40);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(12);
   const [error, setError] = useState('');
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
 
@@ -16,8 +16,9 @@ export default function Budget() {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear() + 543;
     const currentMonth = currentDate.getMonth();
-    const totalMonths = 52;
-    for (let i = -40; i < 12; i++) {
+    
+    // สร้างรายการเดือน 12 เดือนย้อนหลัง + เดือนปัจจุบัน + 12 เดือนข้างหน้า
+    for (let i = -12; i <= 12; i++) {
       const monthIndex = (currentMonth + i + 12) % 12; // ป้องกันลบเกิน
       const yearOffset = Math.floor((currentMonth + i) / 12);
       const year = currentYear + yearOffset;
@@ -98,59 +99,6 @@ export default function Budget() {
     }
   };
 
-  const handleTotalChange = (categoryIndex, value, month) => {
-    const newBudgets = { ...budgets };
-    const category = categories.find((_, i) => i === categoryIndex);
-    if (!newBudgets[month]) newBudgets[month] = [];
-    const existingIndex = newBudgets[month].findIndex(c => c._id === category._id);
-    if (existingIndex > -1) {
-      newBudgets[month][existingIndex].total = parseFloat(value) || 0;
-    } else {
-      newBudgets[month].push({ ...category, total: parseFloat(value) || 0 });
-    }
-    setBudgets(newBudgets);
-    saveBudget(category._id, month, parseFloat(value) || 0);
-  };
-
-  const saveBudget = async (categoryId, month, total) => {
-    const token = localStorage.getItem('token');
-    try {
-      await fetch('http://localhost:5000/api/budgets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ category: categoryId, month, total }),
-      });
-    } catch (error) {
-      setError('เกิดข้อผิดพลาดในการบันทึกงบประมาณ: ' + error.message);
-    }
-  };
-
-  const handleDeleteBudget = async (categoryId, month) => {
-    const token = localStorage.getItem('token');
-    if (!window.confirm('คุณแน่ใจหรือว่าต้องการลบงบประมาณนี้?')) {
-      return; // หยุดการดำเนินการถ้าผู้ใช้ยกเลิก
-    }
-    try {
-      const res = await fetch(`http://localhost:5000/api/budgets/${categoryId}/${month}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (res.ok) {
-        fetchBudgets(token); // อัปเดตข้อมูลหลังลบ
-      } else {
-        const data = await res.json();
-        setError(data.message || 'เกิดข้อผิดพลาดในการลบงบประมาณ');
-      }
-    } catch (error) {
-      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
-    }
-  };
 
   const handleAddBudget = async (e) => {
     e.preventDefault();
@@ -164,28 +112,21 @@ export default function Budget() {
       return;
     }
 
-    await saveBudget(categoryId, month, total);
-    setShowAddBudgetModal(false);
-    fetchBudgets(localStorage.getItem('token')); // อัปเดตข้อมูลหลังเพิ่มงบประมาณ
-  };
-
-  const formatNumber = (num) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  };
-
-  // คำนวณรายจ่ายและคงเหลือ
-  const calculateTotals = (month) => {
-    const budgetData = budgets[month] || categories.map(cat => ({ ...cat, total: 0 }));
-    const totalBudget = budgetData.reduce((sum, cat) => sum + (cat.total || 0), 0);
-    const monthTransactions = transactions.filter(t => {
-      const tDate = new Date(t.date);
-      const tMonthYear = `${monthNames[tDate.getMonth()]} ${tDate.getFullYear() + 543}`;
-      return tMonthYear === month && budgetData.some(cat => cat._id.toString() === t.category._id.toString());
-    });
-    const totalSpent = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
-    const remaining = totalBudget - totalSpent;
-
-    return { totalBudget, totalSpent, remaining };
+    const token = localStorage.getItem('token');
+    try {
+      await fetch('http://localhost:5000/api/budgets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ category: categoryId, month, total }),
+      });
+      setShowAddBudgetModal(false);
+      fetchBudgets(token);
+    } catch (error) {
+      setError('เกิดข้อผิดพลาดในการบันทึกงบประมาณ: ' + error.message);
+    }
   };
 
   const monthNames = [
@@ -194,37 +135,38 @@ export default function Budget() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
-      <div className="bg-white rounded-2xl shadow-lg max-w-md w-full mx-auto overflow-hidden flex flex-col h-96">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-start justify-center pt-8 p-4" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full mx-auto overflow-hidden flex flex-col h-[500px] border border-gray-200">
         {/* Header bar */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b">
-          <Link href="/dashboard" className="text-[#299D91] font-semibold hover:underline">Cancel</Link>
-          <h2 className="text-lg font-bold text-gray-800">ตั้งเป้าหมายงบ</h2>
-          <div></div>
+        <div className="flex items-center justify-center px-6 py-5 bg-gradient-to-r from-[#299D91] to-[#238A80] text-white">
+          <h2 className="text-xl font-bold">ตั้งเป้าหมายงบ</h2>
         </div>
         
-        {/* Main content area - centered vertically */}
-        <div className="flex-1 flex items-center justify-center px-6">
+        {/* Main content area - positioned at top */}
+        <div className="flex-1 flex items-start justify-center px-6 py-6">
           <div className="w-full space-y-8">
             {/* Month Navigation */}
-            <div className="flex items-center justify-center space-x-8">
-              <button
-                onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 0))}
-                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
-                </svg>
-              </button>
-              <h2 className="text-xl font-semibold text-[#299D91]">{selectedMonth.split(' ')[0]}</h2>
-              <button
-                onClick={() => setCurrentMonthIndex((prev) => (prev < months.length - 1 ? prev + 1 : months.length - 1))}
-                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
-                </svg>
-              </button>
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-6 mb-2">
+                <button
+                  onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 0))}
+                  className="p-2 text-gray-500 hover:text-[#299D91] transition-colors rounded-full hover:bg-gray-100"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+                  </svg>
+                </button>
+                <h2 className="text-2xl font-bold text-[#299D91]">{selectedMonth.split(' ')[0]}</h2>
+                <button
+                  onClick={() => setCurrentMonthIndex((prev) => (prev < months.length - 1 ? prev + 1 : months.length - 1))}
+                  className="p-2 text-gray-500 hover:text-[#299D91] transition-colors rounded-full hover:bg-gray-100"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-sm text-gray-500">{selectedMonth}</p>
             </div>
 
             {/* Action Buttons */}
@@ -232,15 +174,21 @@ export default function Budget() {
               <button
                 type="button"
                 onClick={() => setShowAddBudgetModal(true)}
-                className="w-full bg-[#299D91] text-white py-3 rounded-lg hover:bg-[#238A80] transition-colors font-medium"
+                className="w-full bg-gradient-to-r from-[#299D91] to-[#238A80] text-white py-4 rounded-xl hover:from-[#238A80] hover:to-[#1f6b63] transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2"
               >
-                เพิ่มเป้าหมาย
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span>เพิ่มเป้าหมาย</span>
               </button>
               <Link
                 href="/dashboard"
-                className="w-full bg-white text-gray-800 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 text-center transition-colors font-medium block"
+                className="w-full bg-white text-gray-700 py-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-center transition-all duration-300 font-semibold block flex items-center justify-center space-x-2"
               >
-                กลับ
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>กลับ</span>
               </Link>
             </div>
           </div>
@@ -249,18 +197,18 @@ export default function Budget() {
 
       {showAddBudgetModal && (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/30"
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/40"
           onClick={() => setShowAddBudgetModal(false)}
         >
           <div
-            className="bg-white rounded-3xl p-8 max-w-md mx-auto shadow-2xl w-full transform transition-all duration-300 scale-95"
+            className="bg-white rounded-3xl p-8 max-w-md mx-auto shadow-2xl w-full transform transition-all duration-300 scale-95 border border-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#299D91] to-[#238A80] shadow-xl shadow-[#299D91]/30 mb-4">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-2">เพิ่มเป้าหมาย</h3>
