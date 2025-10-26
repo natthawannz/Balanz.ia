@@ -225,7 +225,6 @@ export default function RootLayout({ children }) {
                     <span className="font-extrabold text-2xl text-white group-hover:text-primary-light transition-colors whitespace-nowrap">
                       Balanz<span className="text-slate-300">.IA</span>
                     </span>
-                    <span className="text-xs text-slate-400 whitespace-nowrap">Smart Finance</span>
                   </div>
                 </Link>
               </div>
