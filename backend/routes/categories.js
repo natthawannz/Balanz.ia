@@ -40,10 +40,9 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const existingCategories = await Category.find({ userId: req.user.userId });
     if (existingCategories.length === 0) {
-      // ใช้ findOneAndUpdate กับ upsert เพื่อสร้างหมวดหมู่ default แบบ atomic
       for (const cat of defaultCategories) {
         await Category.findOneAndUpdate(
-          { name: cat.name, userId: req.user.userId },
+          { name: cat.name, userId: req.user.userId, type: cat.type },
           { name: cat.name, icon: cat.icon, type: cat.type, userId: req.user.userId },
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
@@ -64,9 +63,9 @@ router.post('/', authMiddleware, async (req, res) => {
     return res.status(400).json({ message: 'ประเภทต้องเป็น "income" หรือ "expense"' });
   }
   try {
-    const existingCategory = await Category.findOne({ name, userId: req.user.userId });
+    const existingCategory = await Category.findOne({ name, userId: req.user.userId, type });
     if (existingCategory) {
-      return res.status(400).json({ message: 'หมวดหมู่นี้มีอยู่แล้ว' });
+      return res.status(400).json({ message: 'หมวดหมู่นี้มีอยู่แล้วในประเภทนี้' });
     }
     const category = new Category({
       name,
@@ -85,21 +84,17 @@ router.post('/', authMiddleware, async (req, res) => {
 router.delete('/:categoryId', authMiddleware, async (req, res) => {
   const { categoryId } = req.params;
   try {
-    // 1) หา category ตาม id ก่อน
     const category = await Category.findById(categoryId);
     if (!category) {
       return res.status(404).json({ message: 'ไม่พบหมวดหมู่ในระบบ' });
     }
 
-    // 2) ตรวจสอบสิทธิ์ว่าเป็นเจ้าของหรือเปล่า
     if (category.userId.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'คุณไม่มีสิทธิ์ลบหมวดหมู่นี้' });
     }
 
-    // 3) ลบ category
     await Category.deleteOne({ _id: categoryId });
 
-    // 4) ค้นหาหรือสร้างหมวดหมู่ "อื่นๆ" ตามประเภทเดิม
     let otherCategory = await Category.findOne({ name: 'อื่นๆ', type: category.type, userId: req.user.userId });
     if (!otherCategory) {
       otherCategory = new Category({
@@ -111,7 +106,6 @@ router.delete('/:categoryId', authMiddleware, async (req, res) => {
       await otherCategory.save();
     }
 
-    // 5) อัปเดต Transaction ที่เกี่ยวข้อง
     const relatedTransactions = await Transaction.find({ category: category._id, userId: req.user.userId });
     if (relatedTransactions.length > 0) {
       await Transaction.updateMany(

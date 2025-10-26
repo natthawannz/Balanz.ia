@@ -20,8 +20,8 @@ const categorySchema = new mongoose.Schema({
     required: true,
   },
 }, {
-  // ใช้ compound index เพื่อให้ name unique ต่อ userId
-  indexes: [{ key: { userId: 1, name: 1 }, unique: true }]
+  // เปลี่ยน index เป็น compound index ที่รวม type เพื่อให้ name ซ้ำได้ถ้า type ต่างกัน
+  indexes: [{ key: { userId: 1, name: 1, type: 1 }, unique: true }]
 });
 
 module.exports = mongoose.model('Category', categorySchema);

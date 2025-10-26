@@ -110,12 +110,14 @@ export default function Analytics() {
       .reduce((sum, t) => sum + t.amount, 0);
     return acc;
   }, {});
-  const expenseByCategory = categories.reduce((acc, cat) => {
-    acc[cat.name] = filteredTransactions
-      .filter((t) => t.type === 'expense' && t.category?.name === cat.name)
-      .reduce((sum, t) => sum + t.amount, 0);
-    return acc;
-  }, {});
+  const expenseByCategory = categories
+    .filter((cat) => cat.type === 'expense') // กรองเฉพาะหมวดหมู่ประเภท expense
+    .reduce((acc, cat) => {
+      acc[cat.name] = filteredTransactions
+        .filter((t) => t.type === 'expense' && t.category?.name === cat.name)
+        .reduce((sum, t) => sum + t.amount, 0);
+      return acc;
+    }, {});
 
   const summary = filteredTransactions.reduce(
     (acc, t) => {
@@ -129,10 +131,14 @@ export default function Analytics() {
 
   // Pie Chart Data
   const pieData = {
-    labels: categories.filter((cat) => expenseByCategory[cat.name] > 0).map((cat) => cat.name),
+    labels: categories
+      .filter((cat) => cat.type === 'expense' && expenseByCategory[cat.name] > 0)
+      .map((cat) => cat.name),
     datasets: [
       {
-        data: categories.filter((cat) => expenseByCategory[cat.name] > 0).map((cat) => expenseByCategory[cat.name]),
+        data: categories
+          .filter((cat) => cat.type === 'expense' && expenseByCategory[cat.name] > 0)
+          .map((cat) => expenseByCategory[cat.name]),
         backgroundColor: ['#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#d97706', '#16a34a', '#059669'],
         borderColor: '#ffffff',
         borderWidth: 2,
@@ -194,45 +200,38 @@ export default function Analytics() {
       {loading ? (
         <div className="text-center text-gray-600">กำลังโหลด...</div>
       ) : (
-        
         <div className="space-y-8">
-        
-    <div className="bg-white rounded-xl shadow-lg p-7 flex justify-between items-center">
-  <button
-    onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 0))}
-    className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-  >
-    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-      <path
-        fillRule="evenodd"
-        d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-      />
-    </svg>
-  </button>
+          <div className="bg-white rounded-xl shadow-lg p-7 flex justify-between items-center">
+            <button
+              onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 0))}
+              className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                />
+              </svg>
+            </button>
 
-  <h2 className="text-xl font-semibold text-gray-800">{selectedMonth}</h2>
+            <h2 className="text-xl font-semibold text-gray-800">{selectedMonth}</h2>
 
-  <button
-    onClick={() =>
-      setCurrentMonthIndex((prev) =>
-        prev < months.length - 1 ? prev + 1 : months.length - 1
-      )
-    }
-    className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-  >
-    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-      <path
-        fillRule="evenodd"
-        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-      />
-    </svg>
-  </button>
-</div>
-
-
-
-            
-          
+            <button
+              onClick={() =>
+                setCurrentMonthIndex((prev) =>
+                  prev < months.length - 1 ? prev + 1 : months.length - 1
+                )
+              }
+              className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                />
+              </svg>
+            </button>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">
@@ -267,15 +266,17 @@ export default function Analytics() {
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">รายจ่ายตามหมวดหมู่</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {categories.map((cat) => (
-                expenseByCategory[cat.name] > 0 && (
-                  <div key={cat._id} className="bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-3xl mb-2">{cat.icon}</div>
-                    <h4 className="text-sm font-medium text-gray-700">{cat.name}</h4>
-                    <p className="text-lg font-bold text-red-600">{expenseByCategory[cat.name].toLocaleString()} บาท</p>
-                  </div>
-                )
-              ))}
+              {categories
+                .filter((cat) => cat.type === 'expense') // กรองเฉพาะหมวดหมู่ประเภท expense
+                .map((cat) => (
+                  expenseByCategory[cat.name] > 0 && (
+                    <div key={cat._id} className="bg-gray-50 p-4 rounded-lg text-center">
+                      <div className="text-3xl mb-2">{cat.icon}</div>
+                      <h4 className="text-sm font-medium text-gray-700">{cat.name}</h4>
+                      <p className="text-lg font-bold text-red-600">{expenseByCategory[cat.name].toLocaleString()} บาท</p>
+                    </div>
+                  )
+                ))}
             </div>
           </div>
           <div className="bg-white rounded-xl shadow-lg p-6">
@@ -284,13 +285,13 @@ export default function Analytics() {
               <Pie data={pieData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }} />
             </div>
           </div>
-            {/* <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">รายรับ-รายจ่ายรายเดือน</h3>
-              <div className="max-w-4xl mx-auto">
-                <Bar data={barData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
-              </div>
-            </div> */}
-          
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">รายรับ-รายจ่ายรายเดือน</h3>
+            <div className="max-w-4xl mx-auto">
+              <Bar data={barData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
+            </div>
+          </div>
+
           {/* ตารางประวัติธุรกรรมกับการแบ่งหน้า */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">ประวัติธุรกรรม</h3>
@@ -298,35 +299,35 @@ export default function Analytics() {
               <p className="text-center text-gray-600">ไม่มีธุรกรรมในช่วงเวลานี้</p>
             ) : (
               <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="py-2 px-4 text-left text-gray-600">จำนวนเงิน (บาท)</th>
-                      <th className="py-2 px-4 text-left text-gray-600">ประเภท</th>
-                      <th className="py-2 px-4 text-left text-gray-600">หมวดหมู่</th>
-                      <th className="py-2 px-4 text-left text-gray-600">วันที่</th>
-                      <th className="py-2 px-4 text-left text-gray-600">หมายเหตุ</th>
-                      <th className="py-2 px-4 text-left text-gray-600">สร้างเมื่อ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentTransactions.map((t) => {
-                      const category = categories.find((cat) => cat._id.toString() === t.category?.toString());
-                      return (
-                        <tr key={t._id} className="border-b border-gray-100 hover:bg-gray-50 text-gray-700">
-                          <td className="py-2 px-4">{t.amount.toLocaleString()}</td>
-                          <td className="py-2 px-4">{t.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</td>
-                          <td className="py-2 px-4">{t.category?.name || 'ไม่มี'}</td>
-                          <td className="py-2 px-4">{new Date(t.date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', year: 'numeric', month: 'long', day: 'numeric' })}</td>
-                          <td className="py-2 px-4">{t.notes || 'ไม่มี'}</td>
-                          <td className="py-2 px-4">{new Date(t.createdAt).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[600px]">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="py-2 px-4 text-left text-gray-600">จำนวนเงิน (บาท)</th>
+                        <th className="py-2 px-4 text-left text-gray-600">ประเภท</th>
+                        <th className="py-2 px-4 text-left text-gray-600">หมวดหมู่</th>
+                        <th className="py-2 px-4 text-left text-gray-600">วันที่</th>
+                        <th className="py-2 px-4 text-left text-gray-600">หมายเหตุ</th>
+                        <th className="py-2 px-4 text-left text-gray-600">สร้างเมื่อ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentTransactions.map((t) => {
+                        const category = categories.find((cat) => cat._id.toString() === t.category?.toString());
+                        return (
+                          <tr key={t._id} className="border-b border-gray-100 hover:bg-gray-50 text-gray-700">
+                            <td className="py-2 px-4">{t.amount.toLocaleString()}</td>
+                            <td className="py-2 px-4">{t.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</td>
+                            <td className="py-2 px-4">{t.category?.name || 'ไม่มี'}</td>
+                            <td className="py-2 px-4">{new Date(t.date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                            <td className="py-2 px-4">{t.notes || 'ไม่มี'}</td>
+                            <td className="py-2 px-4">{new Date(t.createdAt).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
                 {/* Pagination Controls */}
                 <div className="mt-4 flex justify-center items-center space-x-2">
                   <button

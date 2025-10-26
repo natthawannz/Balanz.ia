@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Tesseract from 'tesseract.js';
+// 👈 NEW IMPORT: Import the CategoryPopup component
+import CategoryPopup from './CategoryPopup'; 
 
 export default function AddTransaction() {
   const [formData, setFormData] = useState({
@@ -18,14 +19,10 @@ export default function AddTransaction() {
   const [transcript, setTranscript] = useState('');
   const [recognition, setRecognition] = useState(null);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
-  const [image, setImage] = useState(null);
-  const [ocrResult, setOcrResult] = useState('');
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [parsedData, setParsedData] = useState(null);
+  // Slip upload + OCR removed for simplified UX
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('🍽️'); // เริ่มต้นด้วย Emoji เดี่ยว
+  const [selectedIcon, setSelectedIcon] = useState('🍽️');
   const [newCategoryType, setNewCategoryType] = useState('expense');
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [selectedCategoryGroup, setSelectedCategoryGroup] = useState('สารสาธารณูปโภค');
@@ -91,9 +88,13 @@ export default function AddTransaction() {
       if (res.ok) {
         let updatedCategories = data || [];
         setCategories(updatedCategories);
-        const defaultCat = updatedCategories.find(cat => cat.type === formData.type) || updatedCategories[0];
-        if (defaultCat) {
-          setFormData(prev => ({ ...prev, category: defaultCat._id }));
+        
+        // Try to set the category field only if the form's current category is empty
+        if (!formData.category) {
+            const defaultCat = updatedCategories.find(cat => cat.type === formData.type) || updatedCategories[0];
+            if (defaultCat) {
+              setFormData(prev => ({ ...prev, category: defaultCat._id }));
+            }
         }
       } else {
         setError(data.message || 'เกิดข้อผิดพลาดในการดึงหมวดหมู่');
@@ -106,32 +107,41 @@ export default function AddTransaction() {
   };
 
   const addCategory = async () => {
-    if (newCategory.trim() && !categories.some(cat => cat.name.toLowerCase() === newCategory.trim().toLowerCase())) {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/categories', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ name: newCategory.trim(), icon: selectedIcon, type: newCategoryType }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          await fetchCategories(token);
-          setNewCategory('');
-          setSelectedIcon('🍽️');
-          setNewCategoryType('expense');
-          setShowAddCategoryModal(false);
-        } else {
-          setError(data.message || 'เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่');
+    if (newCategory.trim()) {
+      const isDuplicate = categories.some(
+        (cat) =>
+          cat.name.toLowerCase() === newCategory.trim().toLowerCase() &&
+          cat.type === newCategoryType
+      );
+      if (!isDuplicate) {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch('http://localhost:5000/api/categories', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ name: newCategory.trim(), icon: selectedIcon, type: newCategoryType }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            await fetchCategories(token);
+            setNewCategory('');
+            setSelectedIcon('🍽️');
+            setNewCategoryType('expense');
+            setShowAddCategoryModal(false);
+          } else {
+            setError(data.message || 'เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่');
+          }
+        } catch (error) {
+          setError('เกิดข้อผิดพลาด: ' + error.message);
         }
-      } catch (error) {
-        setError('เกิดข้อผิดพลาด: ' + error.message);
+      } else {
+        setError('หมวดหมู่นี้มีอยู่แล้วในประเภทนี้');
       }
-    } else if (categories.some(cat => cat.name.toLowerCase() === newCategory.trim().toLowerCase())) {
-      setError('หมวดหมู่นี้มีอยู่แล้ว');
+    } else {
+      setError('กรุณากรอกชื่อหมวดหมู่');
     }
   };
 
@@ -145,13 +155,14 @@ export default function AddTransaction() {
       const budgetData = await budgetRes.json();
 
       if (budgetRes.ok) {
+        // Find if this category ID is used in any budget
         const isUsedInBudget = budgetData.some(
-          budget => String(budget.category._id) === String(categoryId)
+          budget => budget.category && String(budget.category._id) === String(categoryId)
         );
 
         if (isUsedInBudget) {
           setError(
-            'ไม่สามารถลบหมวดหมู่ได้ เนื่องจากมีการใช้งานในระบบงบประมาณ  '
+            'ไม่สามารถลบหมวดหมู่ได้ เนื่องจากมีการใช้งานในระบบงบประมาณ'
           );
           return;
         }
@@ -159,7 +170,7 @@ export default function AddTransaction() {
         // ถ้าไม่ถูกใช้งาน ให้ถามยืนยันลบ
         if (
           window.confirm(
-            `คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่ "${categories.find(cat => cat._id === categoryId)?.name}"?`
+            `คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่ "${categories.find(cat => cat._id === categoryId)?.name}"? การลบจะรวมถึงการลบข้อมูลประวัติหมวดหมู่ในรายการธุรกรรมด้วย`
           )
         ) {
           const res = await fetch(`http://localhost:5000/api/categories/${categoryId}`, {
@@ -169,9 +180,11 @@ export default function AddTransaction() {
 
           if (res.ok) {
             await fetchCategories(token);
+            // If the deleted category was selected, reset to a new default
             if (formData.category === categoryId) {
-              const defaultCat = categories.find(cat => cat.type === formData.type) || categories[0];
-              setFormData(prev => ({ ...prev, category: defaultCat?._id || '' }));
+              const remainingCategories = categories.filter(cat => cat.type === formData.type && cat._id !== categoryId);
+              const newDefaultCat = remainingCategories[0];
+              setFormData(prev => ({ ...prev, category: newDefaultCat?._id || '' }));
             }
           } else {
             const data = await res.json();
@@ -233,12 +246,14 @@ export default function AddTransaction() {
       newFormData.type = 'expense';
     }
 
-    for (const cat of categories) {
-      if (lowerText.includes(cat.name.toLowerCase()) && cat.type === newFormData.type) {
-        newFormData.category = cat._id;
-        break;
-      }
+    // Find category based on the determined type
+    const potentialCategory = categories.find(cat => 
+        lowerText.includes(cat.name.toLowerCase()) && cat.type === newFormData.type
+    );
+    if (potentialCategory) {
+        newFormData.category = potentialCategory._id;
     }
+
 
     const notesMatch = lowerText.match(/(หมายเหตุ|สำหรับ)\s*([\s\S]*)/);
     if (notesMatch) {
@@ -248,70 +263,26 @@ export default function AddTransaction() {
     setFormData(newFormData);
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setOcrLoading(true);
-    Tesseract.recognize(file, 'tha')
-      .then(({ data: { text } }) => {
-        setOcrResult(text);
-        const lowerText = text.toLowerCase();
-        let newParsedData = { ...parsedData, type: 'expense' };
-
-        for (const cat of categories) {
-          if (lowerText.includes(cat.name.toLowerCase()) && cat.type === newParsedData.type) {
-            newParsedData.category = cat._id;
-            break;
-          }
-        }
-
-        const dateMatch = lowerText.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/) ||
-          lowerText.match(/(\d{1,2})\s*(มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s*(\d{4})/);
-        if (dateMatch) {
-          let formattedDate;
-          if (dateMatch[2].match(/\d{1,2}/)) {
-            formattedDate = `${dateMatch[3]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`;
-          } else {
-            const thaiMonths = {
-              'มกราคม': '01', 'กุมภาพันธ์': '02', 'มีนาคม': '03', 'เมษายน': '04',
-              'พฤษภาคม': '05', 'มิถุนายน': '06', 'กรกฎาคม': '07', 'สิงหาคม': '08',
-              'กันยายน': '09', 'ตุลาคม': '10', 'พฤศจิกายน': '11', 'ธันวาคม': '12'
-            };
-            formattedDate = `${parseInt(dateMatch[3]) - 543}-${thaiMonths[dateMatch[2]]}-${dateMatch[1].padStart(2, '0')}`;
-          }
-          newParsedData.date = formattedDate;
-        }
-
-        newParsedData.notes = text.split('\n').slice(0, 2).join(' ').trim();
-        setParsedData(newParsedData);
-        setShowConfirmModal(true);
-      })
-      .catch((error) => {
-        setError('เกิดข้อผิดพลาดในการอ่าน OCR: ' + error.message);
-      })
-      .finally(() => {
-        setOcrLoading(false);
-      });
-  };
-
-  const confirmOcrData = () => {
-    setFormData(parsedData);
-    setShowConfirmModal(false);
-    setImage(null);
-    setOcrResult('');
-  };
+  // Removed OCR handlers
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (!formData.amount || formData.amount <= 0) {
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
       setError('กรุณากรอกจำนวนเงินที่มากกว่า 0');
       setLoading(false);
       return;
     }
+
+    if (!formData.category) {
+        setError('กรุณาเลือกหมวดหมู่');
+        setLoading(false);
+        return;
+    }
+    
+    // Check if the date is in the future
     const today = new Date().toISOString().split('T')[0];
     if (formData.date > today) {
       setError('วันที่ต้องไม่เกินวันปัจจุบัน');
@@ -358,36 +329,36 @@ export default function AddTransaction() {
 
   return (
     <main className="container mx-auto px-6 py-8" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-          <svg className="w-6 h-6 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-          </svg>
-          เพิ่มรายการธุรกรรม
-        </h1>
+      <div className="bg-white rounded-2xl shadow-lg max-w-2xl mx-auto overflow-hidden">
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b">
+          <Link href="/dashboard" className="text-[#299D91] font-semibold">Cancel</Link>
+          <h2 className="text-lg font-bold text-gray-800">บันทึกรายรับ-รายจ่าย</h2>
+          <button form="txn-form" type="submit" className="text-[#299D91] font-semibold">Save</button>
+        </div>
         {error && (
-          <div className="bg-red-100 text-red-600 p-3 rounded-lg mb-4 flex items-center">
+          <div className="bg-red-100 text-red-600 p-3 rounded-lg m-6 flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" />
             </svg>
             {error}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id="txn-form" onSubmit={handleSubmit} className="space-y-5 p-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">จำนวนเงิน (บาท)</label>
             <input
               type="number"
               step="1"
-              min="0" // ป้องกันตัวเลขติดลบ
+              min="0" 
               value={formData.amount}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  amount: e.target.value < 0 ? 0 : e.target.value, // ป้องกันกรอกด้วยการพิมพ์ติดลบ
+                  amount: e.target.value < 0 ? 0 : e.target.value, 
                 })
               }
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-gray-700"
               placeholder="เช่น 500"
               required
             />
@@ -395,59 +366,33 @@ export default function AddTransaction() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">ประเภท</label>
-            <select
-              value={formData.type}
-              onChange={(e) => {
-                const newType = e.target.value;
-                setFormData({ ...formData, type: newType, category: '' });
-                const defaultCat = categories.find(cat => cat.type === newType) || categories.find(cat => cat.type);
-                if (defaultCat) {
-                  setFormData(prev => ({ ...prev, category: defaultCat._id }));
-                }
-              }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
-            >
-              <option value="income">รายรับ</option>
-              <option value="expense">รายจ่าย</option>
-            </select>
+            <div className="inline-flex bg-gray-200 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, type: 'income' })}
+                className={`px-5 py-2 font-semibold ${formData.type==='income' ? 'bg-[#299D91] text-white' : 'text-gray-700'}`}
+              >รายรับ</button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, type: 'expense' })}
+                className={`px-5 py-2 font-semibold ${formData.type==='expense' ? 'bg-[#299D91] text-white' : 'text-gray-700'}`}
+              >รายจ่าย</button>
+            </div>
           </div>
+
+          {/* 👈 CORRECT USAGE OF CATEGORY POPUP COMPONENT */}
           <div>
             <label className="block text-sm font-medium text-gray-700">หมวดหมู่</label>
-            <div className="grid grid-cols-2 gap-4">
-              {categories
-                .filter(cat => cat.type === formData.type)
-                .map((cat) => (
-                  <div
-                    key={cat._id}
-                    className={`bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors duration-200 ${formData.category === cat._id ? 'border-green-500 bg-green-50' : ''
-                      }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => selectCategory(cat._id)}
-                      className="w-full text-center text-gray-800 font-medium flex flex-col items-center space-y-2"
-                    >
-                      <span className="text-3xl">{cat.icon}</span>
-                      <span className="text-sm">{cat.name}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteCategory(cat._id)}
-                      className="mt-3 w-full bg-gray-200 text-gray-700 p-2 rounded-md hover:bg-gray-300 transition-colors text-sm"
-                    >
-                      ลบ
-                    </button>
-                  </div>
-                ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowAddCategoryModal(true)}
-              className="mt-4 w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              เพิ่มหมวดหมู่ใหม่
-            </button>
+            <CategoryPopup
+                categories={categories}
+                formData={formData}
+                selectCategory={selectCategory}
+                deleteCategory={deleteCategory}
+                setShowAddCategoryModal={setShowAddCategoryModal}
+            />
           </div>
+          {/* ---------------------------------------------------- */}
+
           <div>
             <label className="block text-sm font-medium text-gray-700">วันที่</label>
             <input
@@ -474,7 +419,7 @@ export default function AddTransaction() {
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
                 className="w-full p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors text-white"
-                style={{ backgroundColor: isRecording ? '#bd9c9c' : '#00C8D2' }}
+                style={{ backgroundColor: isRecording ? '#d8c2c2' : '#00C8D2' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isRecording ? '#c0b0b0' : '#00A3B3'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isRecording ? '#d8c2c2' : '#00C8D2'}
               >
@@ -490,17 +435,7 @@ export default function AddTransaction() {
               )}
             </div>
           )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">อัพโหลดใบเสร็จ</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              disabled={ocrLoading}
-            />
-            {ocrLoading && <p className="text-center text-gray-600 mt-2">กำลังประมวลผล OCR...</p>}
-          </div>
+          {/* Removed slip upload/OCR section for simpler UX */}
           <div className="flex space-x-4">
             <button
               type="submit"
@@ -518,55 +453,12 @@ export default function AddTransaction() {
           </div>
         </form>
 
-        {showConfirmModal && parsedData && (
-          <div
-            className="fixed inset-0 flex items-center justify-center z-50"
-            onClick={() => {
-              // คลิกพื้นที่รอบ popup ปิด popup และ reset state
-              setShowConfirmModal(false);
-              setParsedData(null);
-            }}
-          >
-            <div
-              className="bg-white rounded-xl p-6 max-w-lg mx-4 shadow-2xl"
-              onClick={(e) => e.stopPropagation()} // ป้องกันคลิกภายใน popup ปิด
-            >
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">ยืนยันข้อมูลจากใบเสร็จ</h3>
-              <div className="space-y-3">
-                <p><strong>จำนวนเงิน:</strong> {parsedData.amount || 'ไม่พบ'} บาท</p>
-                <p><strong>ประเภท:</strong> {parsedData.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</p>
-                <p>
-                  <strong>หมวดหมู่:</strong> {categories.find(cat => cat._id === parsedData.category)?.name || 'ไม่พบหมวดหมู่'}
-                </p>
-                <p><strong>วันที่:</strong> {parsedData.date || 'ไม่พบ'}</p>
-                <p><strong>เวลา:</strong> ไม่มี (ใช้ 00:00)</p>
-                <p><strong>หมายเหตุ:</strong> {parsedData.notes || 'ไม่มี'}</p>
-              </div>
-              <div className="flex space-x-4 mt-6">
-                <button
-                  onClick={confirmOcrData}
-                  className="flex-1 p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  ยืนยัน
-                </button>
-                <button
-                  onClick={() => {
-                    setShowConfirmModal(false);
-                    setParsedData(null); // reset state
-                  }}
-                  className="flex-1 p-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  ยกเลิก
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Removed OCR confirmation modal */}
 
 
         {showAddCategoryModal && (
           <div
-            className="fixed inset-0 flex items-center justify-center z-50"
+            className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/20 z-50 p-4"
             onClick={() => {
               // คลิกพื้นที่นอก popup
               setShowAddCategoryModal(false);
@@ -577,7 +469,7 @@ export default function AddTransaction() {
             }}
           >
             <div
-              className="bg-white rounded-2xl p-8 max-w-2xl mx-4 shadow-2xl"
+              className="bg-white rounded-2xl p-8 max-w-2xl mx-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()} // ป้องกันการปิด popup เมื่อคลิกภายใน
             >
               <h3 className="text-2xl font-semibold text-gray-800 mb-6">เพิ่มหมวดหมู่ใหม่</h3>
@@ -600,13 +492,14 @@ export default function AddTransaction() {
                     </option>
                   ))}
                 </select>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-6 gap-2 h-36 overflow-y-auto p-2 border rounded-lg">
                   {availableIcons
                     .find((group) => group.label === selectedCategoryGroup)
                     ?.value.map((icon) => (
                       <button
                         key={icon}
                         onClick={() => setSelectedIcon(icon)}
+                        type="button" // Important to prevent form submission
                         className={`w-12 h-12 rounded-lg flex items-center justify-center text-3xl ${selectedIcon === icon ? 'bg-green-500 text-white' : 'bg-white hover:bg-gray-100'
                           } border border-gray-200 transition-colors shadow-sm`}
                       >

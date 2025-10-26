@@ -7,29 +7,29 @@ import './globals.css';
 export default function RootLayout({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const pathname = usePathname();
+  const isHome = pathname === '/';
+  const isLanding = isHome || pathname === '/register' || pathname === '/login' || pathname === '/change-password' || pathname === '/forgot-password' || pathname === '/reset-password';
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     setIsLoggedIn(!!token);
-    const savedMode = localStorage.getItem('darkMode');
-    setIsDarkMode(savedMode === 'true' || (savedMode === null && window.matchMedia('(prefers-color-scheme: dark)').matches));
-
     if (token) {
       fetchNotificationCount(token);
     }
+    const storedName = localStorage.getItem('name') || localStorage.getItem('displayName');
+    if (storedName) setDisplayName(storedName);
+    const localAvatar = localStorage.getItem('avatarUrl');
+    if (localAvatar) setAvatarUrl(localAvatar);
   }, []);
-
-  const toggleDarkMode = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    localStorage.setItem('darkMode', newMode);
-  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('name');
+    localStorage.removeItem('displayName');
     setIsLoggedIn(false);
     window.location.href = '/';
   };
@@ -38,7 +38,6 @@ export default function RootLayout({ children }) {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // ตรวจสอบว่าลิงก์ปัจจุบัน active หรือไม่
   const isActive = (path) => pathname === path;
 
   const fetchNotificationCount = async (token) => {
@@ -70,399 +69,429 @@ export default function RootLayout({ children }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setNotificationCount(0); // รีเซ็ตทันทีหลังจาก backend รีเซ็ต
+        setNotificationCount(0);
       }
     } catch (error) {
       console.error('Error resetting notifications:', error);
     }
   };
 
+  const NavLink = ({ href, icon, children, badge, onClick }) => (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`group flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-300 ${
+        isActive(href)
+          ? 'bg-gradient-to-r from-primary to-primary/90 text-white shadow-lg shadow-primary/30 scale-[1.02]'
+          : 'text-slate-300 hover:bg-slate-800/50 hover:text-white hover:scale-[1.01]'
+      }`}
+    >
+      <div className={`relative p-2.5 rounded-lg transition-all duration-300 ${
+        isActive(href) 
+          ? 'bg-white/20 shadow-inner' 
+          : 'bg-slate-700/50 group-hover:bg-slate-600/50'
+      }`}>
+        {icon}
+        {badge > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-5 w-5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-5 w-5 bg-primary items-center justify-center text-[10px] font-bold text-white border-2 border-slate-800">
+              {badge}
+            </span>
+          </span>
+        )}
+      </div>
+      <span className="font-medium flex-1">{children}</span>
+      {isActive(href) && (
+        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+      )}
+    </Link>
+  );
+
+  const MobileNavLink = ({ href, icon, children, badge, onClick }) => (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`flex items-center space-x-4 py-4 px-5 rounded-2xl transition-all duration-300 ${
+        isActive(href)
+          ? 'bg-gradient-to-r from-[#299D91] to-[#1f7a6f] text-white shadow-xl shadow-[#299D91]/30 scale-[1.02]'
+          : 'text-[#666666] hover:bg-[#F3F3F3] hover:text-[#299D91] hover:scale-[1.01]'
+      }`}
+    >
+      <div className={`relative p-3 rounded-xl transition-all duration-300 ${
+        isActive(href) ? 'bg-white/20' : 'bg-[#F3F3F3]'
+      }`}>
+        {icon}
+        {badge > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-5 w-5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#299D91] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-5 w-5 bg-[#299D91] items-center justify-center text-[10px] font-bold text-white border-2 border-white">
+              {badge}
+            </span>
+          </span>
+        )}
+      </div>
+      <span className="text-lg font-medium flex-1">{children}</span>
+      {isActive(href) && (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+        </svg>
+      )}
+    </Link>
+  );
+
   return (
-    <html lang="th" className={isDarkMode ? 'dark' : ''}>
+    <html lang="th">
       <head>
-        <title>SAVEi</title>
+        <title>Balanz.IA - ระบบจัดการการเงินอัจฉริยะ</title>
+        <meta name="description" content="จัดการการเงินอย่างฉลาดด้วย AI" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap"
         />
       </head>
       <body
-        className="min-h-screen flex flex-col"
+        className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-50"
         style={{ fontFamily: "'Noto Sans Thai','Inter',sans-serif" }}
       >
-        <header className="border-b sticky top-0 z-50">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center space-x-3">
-                <Link href="/">
-                  <img src="/logo.png" alt="SAVEi Logo" className="h-16 w-auto cursor-pointer" />
-                </Link>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="md:hidden">
-                  <button
-                    onClick={toggleMenu}
-                    className="text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 focus:outline-none p-2"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"/>
-                    </svg>
-                  </button>
+        {/* Mobile Header */}
+        <header className="md:hidden border-b sticky top-0 z-50 bg-white/90 backdrop-blur-xl shadow-lg">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between py-4">
+              <Link href="/" className="flex items-center space-x-3 group">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg shadow-primary/30">
+                  <span className="text-white font-bold text-lg">B</span>
                 </div>
-                <button
-                  onClick={toggleDarkMode}
-                  className="text-green-700 dark:text-green-300 hover:text-green-500 dark:hover:text-green-400 focus:outline-none p-2"
-                  aria-label="Toggle dark mode"
-                >
-                  {isDarkMode ? (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/>
-                    </svg>
-                  )}
-                </button>
-                <div className="hidden md:block">
-                  <nav className="flex items-center space-x-6">
-                    <Link
-                      href="/"
-                      className={`flex items-center space-x-2 ${
-                        isActive('/')
-                          ? 'font-bold !text-green-600 dark:!text-green-400'
-                          : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400'
-                      } transition-colors text-sm sm:text-base`}
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                      </svg>
-                      <span>หน้าหลัก</span>
-                    </Link>
-                    {isLoggedIn && (
-                      <>
-                        <Link
-                          href="/transactions/add"
-                          className={`flex items-center space-x-2 ${
-                            isActive('/transactions/add')
-                              ? 'font-bold !text-green-600 dark:!text-green-400'
-                              : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400'
-                          } transition-colors text-sm sm:text-base`}
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-                          </svg>
-                          <span>เพิ่มรายการธุรกรรม</span>
-                        </Link>
-                        <Link
-                          href="/budget"
-                          className={`flex items-center space-x-2 ${
-                            isActive('/budget')
-                              ? 'font-bold !text-green-600 dark:!text-green-400'
-                              : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400'
-                          } transition-colors text-sm sm:text-base`}
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M8 7V3h8v4m-9 4h10M5 11v10h14V11"
-                            />
-                          </svg>
-                          <span>งบประมาณ</span>
-                        </Link>
-                        <Link
-                          href="/currency"
-                          className={`flex items-center space-x-2 ${
-                            isActive('/currency')
-                              ? 'font-bold !text-green-600 dark:!text-green-400'
-                              : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400'
-                          } transition-colors text-sm sm:text-base`}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m0 0A7.5 7.5 0 0120 12.75M20 20v-5h-.581m0 0A7.5 7.5 0 014 11.25" />
-                          </svg>
-                          <span>อัตราแลกเปลี่ยน</span>
-                        </Link>
-                        <Link
-                          href="/tax"
-                          className={`flex items-center space-x-2 ${
-                            isActive('/tax')
-                              ? 'font-bold !text-green-600 dark:!text-green-400'
-                              : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400'
-                          } transition-colors text-sm sm:text-base`}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 3h6a2 2 0 012 2v14a2 2 0 01-2 2H9a2 2 0 01-2-2V5a2 2 0 012-2z" />
-                          </svg>
-                          <span>คำนวณภาษี</span>
-                        </Link>
-                        <Link
-                          href="/analytics"
-                          className={`flex items-center space-x-2 ${
-                            isActive('/analytics')
-                              ? 'font-bold !text-green-600 dark:!text-green-400'
-                              : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400'
-                          } transition-colors text-sm sm:text-base`}
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                          </svg>
-                          <span>สรุป</span>
-                        </Link>
-                <Link
-  href="/notifications"
-  onClick={() => resetAndFetchNotifications(localStorage.getItem('token'))}
-  className="flex items-center space-x-2"
->
-  {/* Icon + Badge */}
-  <div className="relative">
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
-    </svg>
-    {notificationCount > 0 && (
-      <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
-        {notificationCount}
+                <span className="font-extrabold text-xl bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Balanz<span className="text-primary">.IA</span>
       </span>
-    )}
-  </div>
-
-  {/* Label */}
-  <span>การแจ้งเตือน</span>
-</Link>
-
-                        <Link
-                          href="/profile"
-                          className={`flex items-center space-x-2 ${
-                            isActive('/profile')
-                              ? 'font-bold !text-green-600 dark:!text-green-400'
-                              : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400'
-                          } transition-colors text-sm sm:text-base`}
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"/>
-                          </svg>
-                          <span>โปรไฟล์</span>
                         </Link>
                         <button
-                          onClick={handleLogout}
-                          className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 transition-colors text-sm sm:text-base"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"/>
+                onClick={toggleMenu}
+                className="p-3 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 hover:from-slate-200 hover:to-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-300 shadow-md hover:shadow-lg"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/>
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16m-7 6h7"/>
+                  )}
                           </svg>
-                          <span>ออกจากระบบ</span>
                         </button>
-                      </>
-                    )}
-                  </nav>
-                </div>
-              </div>
             </div>
           </div>
         </header>
 
+        <div className="md:flex flex-1">
+          {/* Desktop Sidebar */}
+          {!isLanding && (
+            <aside className="hidden md:flex fixed h-screen w-80 flex-col bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white border-r border-slate-700/50 shadow-2xl overflow-hidden">
+              {/* Decorative Background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none"></div>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+              
+              {/* Logo Section */}
+              <div className="relative px-6 py-8 border-b border-slate-700/50">
+                <Link href="/" className="flex items-center space-x-3 group">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-xl shadow-primary/30">
+                    <span className="text-white font-bold text-xl">B</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-extrabold text-2xl text-white group-hover:text-primary-light transition-colors">
+                      Balanz<span className="text-slate-300">.IA</span>
+                    </span>
+                    <span className="text-xs text-slate-400">ระบบจัดการการเงินอัจฉริยะ</span>
+                  </div>
+              </Link>
+            </div>
+
+              {/* Navigation */}
+              <nav className="relative flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
+                <NavLink href="/" icon={<img src="/icons/grid.png" alt="" className="w-5 h-5" />}>
+                  หน้าหลัก
+                </NavLink>
+              {isLoggedIn && (
+                <>
+                    <NavLink href="/transactions/add" icon={<img src="/icons/wallet-add.png" alt="" className="w-5 h-5" />}>
+                      เพิ่มรายการธุรกรรม
+                    </NavLink>
+                    <NavLink href="/budget" icon={<img src="/icons/target-dollar.png" alt="" className="w-5 h-5" />}>
+                      งบประมาณ
+                    </NavLink>
+                    <NavLink href="/currency" icon={<img src="/icons/exchange.png" alt="" className="w-5 h-5" />}>
+                      อัตราแลกเปลี่ยน
+                    </NavLink>
+                    <NavLink href="/tax" icon={<img src="/icons/tax.png" alt="" className="w-5 h-5" />}>
+                      คำนวณภาษี
+                    </NavLink>
+                    <NavLink href="/analytics" icon={<img src="/icons/bars.png" alt="" className="w-5 h-5" />}>
+                      สรุปและวิเคราะห์
+                    </NavLink>
+                    <NavLink 
+                      href="/notifications" 
+                      badge={notificationCount}
+                      onClick={() => resetAndFetchNotifications(localStorage.getItem('token'))}
+                      icon={
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                        </svg>
+                      }
+                    >
+                      การแจ้งเตือน
+                    </NavLink>
+                </>
+              )}
+            </nav>
+
+              {/* Footer Section */}
+              <div className="relative p-6 border-t border-slate-700/50 space-y-4">
+              {isLoggedIn && (
+                  <>
+                    {/* Profile Card */}
+                    <Link href="/profile" className="flex items-center p-4 rounded-2xl bg-gradient-to-r from-slate-800/50 to-slate-700/50 hover:from-slate-700/50 hover:to-slate-600/50 transition-all duration-300 group border border-slate-600/30 hover:border-slate-500/50 backdrop-blur-sm">
+                      <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 overflow-hidden flex items-center justify-center text-white font-bold mr-4 group-hover:scale-105 transition-transform shadow-lg shadow-primary/20">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                          <span className="text-xl">{displayName ? displayName.charAt(0).toUpperCase() : 'U'}</span>
+                    )}
+                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 border-2 border-slate-800 rounded-full"></div>
+                  </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white font-semibold truncate">{displayName || 'ผู้ใช้'}</p>
+                        <p className="text-xs text-slate-400">ตั้งค่าโปรไฟล์</p>
+                  </div>
+                      <svg className="w-5 h-5 text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
+                      </svg>
+                </Link>
+
+                    {/* Logout Button */}
+                    <button 
+                      onClick={handleLogout} 
+                      className="w-full flex items-center justify-center space-x-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white transition-all duration-300 group shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
+                    >
+                      <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"/>
+                      </svg>
+                      <span className="font-semibold">ออกจากระบบ</span>
+                    </button>
+                  </>
+              )}
+            </div>
+          </aside>
+          )}
+
+          {/* Main Content */}
+          <div className={`${isLanding ? 'w-full' : 'w-full md:ml-80'}`}>
+            {/* Desktop Top Bar */}
+        {!isLanding && (
+              <div className="hidden md:block sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-sm">
+                <div className="max-w-7xl mx-auto px-2 py-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col">
+                        <h1 className="text-2xl font-bold text-slate-800 mb-1">
+                          Hello {displayName || 'ผู้ใช้'}
+                        </h1>
+                        <p className="text-sm text-slate-500">{new Date().toLocaleDateString('th-TH', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}</p>
+                      </div>
+              </div>
+                    <div className="flex items-center gap-3">
+                      <Link 
+                        href="/notifications" 
+                        onClick={() => resetAndFetchNotifications(localStorage.getItem('token'))}
+                        className="relative inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 hover:from-slate-200 hover:to-slate-100 transition-all duration-300 group shadow-md hover:shadow-lg"
+                      >
+                        <svg className="w-6 h-6 text-slate-600 group-hover:text-primary transition-colors group-hover:scale-110 duration-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                </svg>
+                {notificationCount > 0 && (
+                          <span className="absolute -top-1 -right-1 flex h-6 w-6">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                            <span className="relative inline-flex h-6 w-6 bg-gradient-to-br from-primary to-primary/80 text-white text-xs rounded-full border-2 border-white items-center justify-center font-bold shadow-lg">
+                              {notificationCount}
+                            </span>
+                          </span>
+                )}
+              </Link>
+                    </div>
+                  </div>
+            </div>
+          </div>
+        )}
+
         {/* Mobile Menu */}
         <nav
-className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'} fixed top-0 left-0 w-full h-full bg-white dark:bg-[#bdf2f4] bg-opacity-95 p-6 overflow-y-auto z-50`}
-
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-800">เมนู</h2>
+              className={`md:hidden fixed inset-0 bg-white/98 backdrop-blur-xl p-6 overflow-y-auto z-50 transition-all duration-500 ${
+                isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+              }`}
+            >
+              <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#299D91] to-[#1f7a6f] flex items-center justify-center shadow-xl shadow-[#299D91]/30">
+                    <span className="text-white font-bold text-xl">B</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <h2 className="text-2xl font-bold text-[#191919]">เมนู</h2>
+                    <span className="text-xs text-[#9F9F9F]">นำทาง</span>
+                  </div>
+                </div>
             <button
               onClick={toggleMenu}
-              className="text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 focus:outline-none p-2"
+                  className="p-3 rounded-xl bg-[#F3F3F3] hover:bg-[#E8E8E8] text-[#666666] hover:text-[#191919] transition-all duration-300 shadow-md hover:shadow-lg"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
           </div>
+
           {isLoggedIn && (
-            <div className="flex flex-col space-y-4">
-              <Link
+                <div className="flex flex-col space-y-3">
+                  <MobileNavLink 
                 href="/"
                 onClick={toggleMenu}
-                className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-                  isActive('/')
-                    ? 'font-bold !text-green-600 dark:!text-green-400 bg-white-100 dark:bg-white-800'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-white-100 dark:hover:bg-white-800'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                </svg>
-                <span className="text-lg">หน้าหลัก</span>
-              </Link>
-              <Link
+                    icon={<img src="/icons/grid.png" alt="" className="w-6 h-6" />}
+                  >
+                    หน้าหลัก
+                  </MobileNavLink>
+                  <MobileNavLink 
                 href="/transactions/add"
                 onClick={toggleMenu}
-                className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-                  isActive('/transactions/add')
-                    ? 'font-bold !text-green-600 dark:!text-green-400 bg-gray-100 dark:bg-white-800'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-white-800'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-                </svg>
-                <span className="text-lg">เพิ่มรายการธุรกรรม</span>
-              </Link>
-              <Link
+                    icon={<img src="/icons/wallet-add.png" alt="" className="w-6 h-6" />}
+                  >
+                    เพิ่มรายการธุรกรรม
+                  </MobileNavLink>
+                  <MobileNavLink 
                 href="/budget"
                 onClick={toggleMenu}
-                className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-                  isActive('/budget')
-                    ? 'font-bold !text-green-600 dark:!text-green-400 bg-gray-100 dark:bg-white-800'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-white-800'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3h8v4m-9 4h10M5 11v10h14V11"/>
-                </svg>
-                <span className="text-lg">งบประมาณ</span>
-              </Link>
-
-                  <Link
+                    icon={<img src="/icons/target-dollar.png" alt="" className="w-6 h-6" />}
+                  >
+                    งบประมาณ
+                  </MobileNavLink>
+                  <MobileNavLink 
                 href="/currency"
                 onClick={toggleMenu}
-                className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-                  isActive('/currency')
-                    ? 'font-bold !text-green-600 dark:!text-green-400 bg-gray-100 dark:bg-white-800'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-white-800'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m0 0A7.5 7.5 0 0120 12.75M20 20v-5h-.581m0 0A7.5 7.5 0 014 11.25"/>
-                </svg>
-                <span className="text-lg">อัตราแลกเปลี่ยน</span>
-              </Link>
-
-
-                  <Link
+                    icon={<img src="/icons/exchange.png" alt="" className="w-6 h-6" />}
+                  >
+                    อัตราแลกเปลี่ยน
+                  </MobileNavLink>
+                  <MobileNavLink 
                 href="/tax"
                 onClick={toggleMenu}
-                className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-                  isActive('/tax')
-                    ? 'font-bold !text-green-600 dark:!text-green-400 bg-gray-100 dark:bg-white-800'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-white-800'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 3h6a2 2 0 012 2v14a2 2 0 01-2 2H9a2 2 0 01-2-2V5a2 2 0 012-2z"/>
-                </svg>
-                <span className="text-lg">คำนวณภาษี</span>
-              </Link>
-
-
-
-                  <Link
+                    icon={<img src="/icons/tax.png" alt="" className="w-6 h-6" />}
+                  >
+                    คำนวณภาษี
+                  </MobileNavLink>
+                  <MobileNavLink 
                 href="/analytics"
                 onClick={toggleMenu}
-                className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-                  isActive('/analytics')
-                    ? 'font-bold !text-green-600 dark:!text-green-400 bg-gray-100 dark:bg-white-800'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-white-800'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                </svg>
-                <span className="text-lg">สรุป</span>
-              </Link>
-              
-     <Link
+                    icon={<img src="/icons/bars.png" alt="" className="w-6 h-6" />}
+                  >
+                    สรุปและวิเคราะห์
+                  </MobileNavLink>
+                  <MobileNavLink 
   href="/notifications"
+                    badge={notificationCount}
   onClick={() => { resetAndFetchNotifications(localStorage.getItem('token')); toggleMenu(); }}
-  className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-    isActive('/notifications')
-      ? 'font-bold !text-green-600 dark:!text-green-400 bg-gray-100 dark:bg-white-800'
-      : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-white-800'
-  }`}
->
-  {/* Icon + Badge ซ้อนกัน */}
-  <div className="relative">
+                    icon={
     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
       <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
     </svg>
-    {notificationCount > 0 && (
-      <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
-        {notificationCount}
-      </span>
-    )}
-  </div>
-
-  {/* Label */}
-  <span className="text-lg">การแจ้งเตือน</span>
-</Link>
-
-
-
-
-
-                   <Link
+                    }
+                  >
+                    การแจ้งเตือน
+                  </MobileNavLink>
+                  <MobileNavLink 
                 href="/profile"
                 onClick={toggleMenu}
-                className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-                  isActive('/profile')
-                    ? 'font-bold !text-green-600 dark:!text-green-400 bg-gray-100 dark:bg-white-800'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-white-800'
-                }`}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"/>
-                </svg>
-                <span className="text-lg">โปรไฟล์</span>
-              </Link>
-
+                    icon={
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"/>
+                      </svg>
+                    }
+                  >
+                    โปรไฟล์
+                  </MobileNavLink>
               <button
                 onClick={() => { handleLogout(); toggleMenu(); }}
-                className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700 dark:text-gray-300 hover:text-green-500 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-white-800 w-full text-left"
+                    className="flex items-center space-x-4 py-4 px-5 rounded-2xl bg-gradient-to-r from-[#ef4444] to-[#dc2626] hover:from-[#dc2626] hover:to-[#b91c1c] text-white transition-all duration-300 shadow-lg shadow-[#ef4444]/20 hover:shadow-xl hover:scale-[1.01]"
               >
+                    <div className="p-3 rounded-xl bg-white/20">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"/>
                 </svg>
-                <span className="text-lg">ออกจากระบบ</span>
+                    </div>
+                    <span className="text-lg font-semibold flex-1 text-left">ออกจากระบบ</span>
               </button>
             </div>
           )}
         </nav>
 
-        <main className="flex-1 container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            {/* Main Content Area */}
+        <main className={`flex-1 ${isLanding ? 'w-full p-0' : 'w-full'}`}>
+          <div className={`${!isLanding && 'min-h-screen'}`}>
           {children}
+          </div>
         </main>
 
-        <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-12">
-          <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-              <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6 text-gray-600 dark:text-gray-400">
-                <Link href="/help" className="flex items-center space-x-2 hover:text-green-500 dark:hover:text-green-400 transition-colors text-sm sm:text-base">
+            {/* Footer */}
+            <footer className={`${isLanding ? 'bg-slate-900 border-transparent' : 'bg-white/50 backdrop-blur-sm border-slate-200'} border-t mt-auto`}>
+              <div className="max-w-7xl mx-auto px-6 py-10">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-6 md:space-y-0">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-slate-600">
+                    <Link href="/help" className="flex items-center space-x-3 hover:text-primary transition-all duration-300 text-sm font-medium group">
+                      <div className="p-2.5 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-all duration-300 shadow-sm group-hover:shadow-md">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"/>
                   </svg>
-                  <span>ช่วยเหลือ</span>
+                      </div>
+                      <span>ศูนย์ช่วยเหลือ</span>
                 </Link>
-                <Link href="/contact" className="flex items-center space-x-2 hover:text-green-500 dark:hover:text-green-400 transition-colors text-sm sm:text-base">
+                    <Link href="/contact" className="flex items-center space-x-3 hover:text-primary transition-all duration-300 text-sm font-medium group">
+                      <div className="p-2.5 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-all duration-300 shadow-sm group-hover:shadow-md">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
                   </svg>
+                      </div>
                   <span>ติดต่อเรา</span>
                 </Link>
               </div>
-              <div className="text-center text-gray-500 dark:text-gray-400 text-sm sm:text-base">
-                © 2025 SAVEi. สงวนลิขสิทธิ์
+                  <div className="text-center">
+                    <p className="text-slate-500 text-sm">
+                      © 2025 <span className="font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Balanz.IA</span>
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">ระบบจัดการการเงินอัจฉริยะ</p>
               </div>
             </div>
           </div>
         </footer>
+          </div>
+        </div>
+
+        <style jsx global>{`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+          }
+        `}</style>
       </body>
     </html>
   );

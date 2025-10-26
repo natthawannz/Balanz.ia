@@ -1,90 +1,81 @@
+// ...existing code...
 "use client";
-import { useState } from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
-import Image from 'next/image';
+import { useState } from "react";
+import Link from "next/link";
+import AuthCard from "@/components/AuthCard";
 
 export default function Register() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        window.location.href = '/dashboard';
-      } else {
-        setError(data.message || 'Failed to register');
-      }
-    } catch (error) {
-      setError('Failed to register');
+      const raw = await res.text();
+      let data;
+      try { data = JSON.parse(raw); } catch { data = { message: raw }; }
+      if (!res.ok) throw new Error(data.message || `สมัครสมาชิกไม่สำเร็จ (${res.status})`);
+      // เก็บชื่อที่ผู้ใช้กรอกไว้เพื่อให้แสดงในแถบเมื่อเข้าสู่ระบบสำเร็จภายหลัง
+      try { localStorage.setItem('name', name); localStorage.setItem('email', email); } catch {}
+      window.location.href = "/login";
+    } catch (err) {
+      setError(err.message || "เกิดข้อผิดพลาด");
     }
   };
 
   return (
-    <div className=" bg-[#BDF2F4] flex items-center justify-center p-4 rounded-lg">
-      <Head>
-        <title>Register - SAVEi</title>
-      </Head>
-      <div className="bg-white white:bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <div className="flex justify-center mb-6">
-          <Image src="/logo.png" alt="SAVEi Logo" width={80} height={80} className="object-contain" />
+    <AuthCard leftSubtitle="Create your account">
+      <h1 className="text-2xl font-extrabold text-center text-[#191919] mb-2">สมัครสมาชิก</h1>
+      {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="border-2 border-[#4db8a8] rounded-xl p-4">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            placeholder="ชื่อ"
+            autoComplete="name"
+            className="w-full outline-none text-gray-700 placeholder-gray-400"
+          />
         </div>
-        <h1 style={{ color: '#00C8D2' }} className="text-3xl font-bold text-center mb-6">
+        <div className="border-2 border-[#4db8a8] rounded-xl p-4">
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            type="email"
+            placeholder="อีเมล"
+            autoComplete="email"
+            className="w-full outline-none text-gray-700 placeholder-gray-400"
+          />
+        </div>
+        <div className="border-2 border-[#4db8a8] rounded-xl p-4">
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            type="password"
+            placeholder="รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
+            autoComplete="new-password"
+            className="w-full outline-none text-gray-700 placeholder-gray-400"
+          />
+        </div>
+        <button type="submit" className="w-full bg-[#4db8a8] hover:bg-[#3d9888] text-white py-4 rounded-xl font-semibold shadow-lg transition">
           สมัครสมาชิก
-        </h1>
-        {error && <p className="text-red-600 white:text-red-400 text-center mb-4">{error}</p>}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 white:text-gray-300 mb-1">ชื่อ</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-3 border border-gray-300 white:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 white:focus:ring-green-400 bg-white white:bg-gray-700 text-gray-900 white:text-white"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 white:text-gray-300 mb-1">อีเมล</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-gray-300 white:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 white:focus:ring-green-400 bg-white white:bg-gray-700 text-gray-900 white:text-white"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 white:text-gray-300 mb-1">รหัสผ่าน</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-300 white:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 white:focus:ring-green-400 bg-white white:bg-gray-700 text-gray-900 white:text-white"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition-colors duration-200 white:bg-green-500 white:hover:bg-green-600"
-          >
-            สมัครสมาชิก
-          </button>
-          <p className="text-center text-gray-600 white:text-gray-400">
-            มีบัญชีอยู่แล้ว? <Link href="/login" className="text-green-600 white:text-green-400 hover:underline">เข้าสู่ระบบ</Link>
-          </p>
-        </form>
-      </div>
-    </div>
+        </button>
+        <p className="text-center text-sm text-gray-600">
+          มีบัญชีอยู่แล้ว? <Link href="/login" className="text-[#4db8a8] font-semibold hover:underline">เข้าสู่ระบบ</Link>
+        </p>
+      </form>
+    </AuthCard>
   );
 }
+// ...existing code...

@@ -7,18 +7,58 @@ export default function Dashboard() {
     totalIncome: 0,
     totalExpenses: 0,
     netSavings: 0,
-    transactionCount: 0,
     recentTransactions: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [displayName, setDisplayName] = useState('ผู้ใช้');
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  const monthNames = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+
+  const getMonths = () => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear() + 543;
+    const currentMonth = currentDate.getMonth();
+    const months = [];
+    for (let i = -19; i <= 19; i++) { 
+      const monthIndex = (currentMonth + i + 12) % 12;
+      const yearOffset = Math.floor((currentMonth + i) / 12);
+      const year = currentYear + yearOffset;
+      months.push(`${monthNames[monthIndex]} ${year}`);
+    }
+    return months;
+  };
+
+  const months = getMonths();
+  const currentDate = new Date();
+  const currentMonthYear = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear() + 543}`;
+  const currentMonthInitialIndex = months.findIndex(m => m === currentMonthYear);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(currentMonthInitialIndex >= 0 ? currentMonthInitialIndex : 0);
+  const selectedMonth = months[currentMonthIndex];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/login'; // Redirect ถ้ายังไม่ล็อกอิน
-      return;
-    }
+    const storedName = localStorage.getItem('name') || localStorage.getItem('displayName');
+    if (storedName) setDisplayName(storedName);
+
+    const fetchBadge = async () => {
+      try {
+        if (!token) return;
+        const res = await fetch('http://localhost:5000/api/check-budget', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        });
+        const raw = await res.text();
+        let data; 
+        try { data = JSON.parse(raw); } catch { data = {}; }
+        if (res.ok) setNotificationCount(data.alertCount || 0);
+      } catch {}
+    };
+    fetchBadge();
 
     const fetchStats = async () => {
       try {
@@ -29,22 +69,26 @@ export default function Dashboard() {
           throw new Error((await res.json()).message || 'Failed to fetch transactions');
         }     
         const transactions = await res.json();
-        console.log('Fetched transactions:', transactions); // ตรวจสอบข้อมูลที่ดึงมา
-        const sortedTransactions = transactions.sort(
+        const filteredTransactions = transactions.filter(t => {
+          const tDate = new Date(t.date);
+          const tMonthYear = `${monthNames[tDate.getMonth()]} ${tDate.getFullYear() + 543}`;
+          return tMonthYear === selectedMonth;
+        });
+
+        const sortedTransactions = filteredTransactions.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        ); // เรียงลำดับจากล่าสุด
-        const totalIncome = sortedTransactions
+        );
+        const totalIncome = filteredTransactions
           .filter((t) => t.type === 'income')
           .reduce((sum, t) => sum + t.amount, 0);
-        const totalExpenses = sortedTransactions
+        const totalExpenses = filteredTransactions
           .filter((t) => t.type === 'expense')
           .reduce((sum, t) => sum + t.amount, 0);
         setStats({
           totalIncome,
           totalExpenses,
           netSavings: totalIncome - totalExpenses,
-          transactionCount: transactions.length,
-          recentTransactions: sortedTransactions.slice(0, 3), // 3 รายการล่าสุด
+          recentTransactions: sortedTransactions.slice(0, 3),
         });
         setLoading(false);
       } catch (error) {
@@ -52,168 +96,181 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-    fetchStats();
-  }, []);
 
-  const showAlert = (action) => {
-    const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    modal.innerHTML = `
-      <div class="bg-white rounded-xl p-8 max-w-md mx-4 shadow-2xl">
-        <div class="text-center">
-          <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold text-gray-800 mb-2">คุณเลือก: ${action}</h3>
-          <p class="text-gray-600 mb-6">ฟีเจอร์นี้จะพร้อมใช้งานเร็วๆ นี้!</p>
-          <button onclick="this.closest('.fixed').remove()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            ตกลง
-          </button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+    fetchStats();
+    
+    const interval = setInterval(() => {
+      const newDate = new Date();
+      const newMonthYear = `${monthNames[newDate.getMonth()]} ${newDate.getFullYear() + 543}`;
+      if (newMonthYear !== selectedMonth.split(' ')[0] + ' ' + (parseInt(selectedMonth.split(' ')[1]) - 543)) {
+        fetchStats();
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [selectedMonth]);
+
+  const formatDate = () => {
+    const d = new Date();
+    const monthNamesTh = [
+      'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+      'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'
+    ];
+    const m = monthNamesTh[d.getMonth()];
+    const day = d.getDate();
+    const year = d.getFullYear();
+    return `${m} ${day}, ${year}`;
   };
 
-return (
-  <main className="container mx-auto px-6 py-8 min-h-screen">
-    {/* Stats Cards */}
-    {error ? (
-      <p className="text-red-600 mb-8">{error}</p>
-    ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-        {/* Card */}
-        <div className="backdrop-blur-lg bg-white/70 rounded-2xl shadow-2xl p-8 border border-gray-100 hover:scale-105 transition-transform duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">รายรับทั้งหมด</p>
-              <p className="text-4xl font-extrabold text-[#2563eb] drop-shadow">{loading ? '...' : `${stats.totalIncome.toLocaleString()} ฿`}</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#38bdf8] to-[#6366f1] p-4 rounded-full shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-        {/* Card */}
-        <div className="backdrop-blur-lg bg-white/70 rounded-2xl shadow-2xl p-8 border border-gray-100 hover:scale-105 transition-transform duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">รายจ่ายทั้งหมด</p>
-              <p className="text-4xl font-extrabold text-[#ef4444] drop-shadow">{loading ? '...' : `${stats.totalExpenses.toLocaleString()} ฿`}</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#fbbf24] to-[#ef4444] p-4 rounded-full shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-        {/* Card */}
-        <div className="backdrop-blur-lg bg-white/70 rounded-2xl shadow-2xl p-8 border border-gray-100 hover:scale-105 transition-transform duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">เงินออมสุทธิ</p>
-              <p className="text-4xl font-extrabold text-[#f59e42] drop-shadow">{loading ? '...' : `${stats.netSavings.toLocaleString()} ฿`}</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#fde68a] to-[#f59e42] p-4 rounded-full shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-        {/* Card */}
-        <div className="backdrop-blur-lg bg-white/70 rounded-2xl shadow-2xl p-8 border border-gray-100 hover:scale-105 transition-transform duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">จำนวนธุรกรรม</p>
-              <p className="text-4xl font-extrabold text-[#a78bfa] drop-shadow">{loading ? '...' : stats.transactionCount}</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#a78bfa] to-[#6366f1] p-4 rounded-full shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
+  return (
+    <main className="min-h-screen bg-[#F5F5F5]">
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        
 
-    {/* Action Cards */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-      <div className="group bg-gradient-to-br from-[#e0e7ff] to-[#f0fdfa] rounded-2xl shadow-xl p-8 cursor-pointer border border-gray-100 hover:scale-105 hover:shadow-2xl transition-all duration-300" onClick={() => window.location.href = '/transactions/add'}>
-        <div className="text-center">
-          <div className="bg-gradient-to-br from-[#38bdf8] to-[#6366f1] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-            </svg>
+        {/* Month Navigation - */}
+        <div className="mb-8">
+          <p className="text-xs text-slate-500 mb-3 uppercase tracking-wide">Month</p>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-6 py-4 flex items-center justify-between max-w-xs">
+            <button
+              onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 0))}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              aria-label="เดือนก่อนหน้า"
+            >
+              <svg className="w-5 h-5 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <div className="text-center px-4">
+              <span className="text-lg font-semibold text-[#299D91]">{selectedMonth.split(' ')[0]}</span>
+            </div>
+            <button
+              onClick={() => setCurrentMonthIndex((prev) => (prev < months.length - 1 ? prev + 1 : months.length - 1))}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              aria-label="เดือนถัดไป"
+            >
+              <svg className="w-5 h-5 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
           </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">เพิ่มธุรกรรม</h3>
-          <p className="text-gray-500">บันทึกรายรับหรือรายจ่ายใหม่</p>
         </div>
-      </div>
-      <div className="group bg-gradient-to-br from-[#f0fdfa] to-[#e0e7ff] rounded-2xl shadow-xl p-8 cursor-pointer border border-gray-100 hover:scale-105 hover:shadow-2xl transition-all duration-300" onClick={() => window.location.href = '/analytics'}>
-        <div className="text-center">
-          <div className="bg-gradient-to-br from-[#34d399] to-[#22d3ee] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-            </svg>
-          </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">ดูรายงาน</h3>
-          <p className="text-gray-500">ตรวจสอบสถิติการเงิน</p>
-        </div>
-      </div>
-      <div className="group bg-gradient-to-br from-[#fef9c3] to-[#e0e7ff] rounded-2xl shadow-xl p-8 cursor-pointer border border-gray-100 hover:scale-105 hover:shadow-2xl transition-all duration-300" onClick={() => window.location.href = '/profile'}>
-        <div className="text-center">
-          <div className="bg-gradient-to-br from-[#a78bfa] to-[#f472b6] w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"/>
-            </svg>
-          </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">ตั้งค่า</h3>
-          <p className="text-gray-500">จัดการการตั้งค่าระบบ</p>
-        </div>
-      </div>
-    </div>
 
-    {/* Recent Activity */}
-    <div className="backdrop-blur-lg bg-white/70 rounded-2xl shadow-2xl p-8 border border-gray-100">
-      <h3 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
-        <svg className="w-7 h-7 mr-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
-        </svg>
-        ธุรกรรมล่าสุด
-      </h3>
-      {loading ? (
-        <p className="text-gray-600">กำลังโหลด...</p>
-      ) : error ? (
-        <p className="text-red-600">{error}</p>
-      ) : stats.recentTransactions.length === 0 ? (
-        <p className="text-gray-600">ไม่มีธุรกรรมล่าสุด</p>
-      ) : (
-        <div className="space-y-6">
-          {stats.recentTransactions.map((txn) => (
-            <div key={txn._id} className="flex items-center space-x-5 p-5 bg-gradient-to-r from-[#f0fdfa] to-[#e0e7ff] rounded-xl shadow hover:scale-[1.02] transition-transform">
-              <div className={txn.type === 'income' ? 'bg-gradient-to-br from-[#34d399] to-[#22d3ee] p-3 rounded-full' : 'bg-gradient-to-br from-[#fbbf24] to-[#ef4444] p-3 rounded-full'}>
-                <svg className={`w-6 h-6 text-white`} fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-800">
-                  {txn.type === 'income' ? 'เพิ่มรายรับ' : 'เพิ่มรายจ่าย'}: <span className="text-[#2563eb]">{txn.category.name}</span> <span className="text-[#ef4444]">({txn.amount.toLocaleString()} ฿)</span>
-                </p>
-                <p className="text-sm text-gray-500">{new Date(txn.createdAt).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+        {/* Stats Cards -  */}
+        {error ? (
+          <p className="text-red-600 mb-8 p-4 bg-red-50 rounded-lg">{error}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            
+            {/* Income Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <p className="text-xs text-slate-500 mb-1">Income</p>
+              <p className="text-[10px] text-slate-400 mb-4">รายรับทั้งหมด (ต่อเดือน)</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-bold text-[#299D91]">
+                  {loading ? '0' : stats.totalIncome.toLocaleString()}
+                </span>
+                <span className="text-2xl font-semibold text-[#299D91]">฿</span>
               </div>
             </div>
-          ))}
+
+            {/* Expense Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <p className="text-xs text-slate-500 mb-1">Expense</p>
+              <p className="text-[10px] text-slate-400 mb-4">รายจ่ายทั้งหมด (ต่อเดือน)</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-bold text-[#FF6B6B]">
+                  {loading ? '0' : stats.totalExpenses.toLocaleString()}
+                </span>
+                <span className="text-2xl font-semibold text-[#FF6B6B]">฿</span>
+              </div>
+            </div>
+
+            {/* Net Balance Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <p className="text-xs text-slate-500 mb-1">Net Balance</p>
+              <p className="text-[10px] text-slate-400 mb-4">ยอดคงเหลือสุทธิ (ต่อเดือน)</p>
+              <div className="flex items-baseline gap-2">
+                <span className={`text-5xl font-bold ${stats.netSavings >= 0 ? 'text-[#FFD93D]' : 'text-[#FF6B6B]'}`}>
+                  {loading ? '0' : Math.abs(stats.netSavings).toLocaleString()}
+                </span>
+                <span className={`text-2xl font-semibold ${stats.netSavings >= 0 ? 'text-[#FFD93D]' : 'text-[#FF6B6B]'}`}>฿</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Floating Add Button - */}
+        <button
+          onClick={() => (window.location.href = '/transactions/add')}
+          className="fixed right-8 bottom-8 w-16 h-16 rounded-full bg-[#299D91] shadow-lg text-white flex items-center justify-center hover:bg-[#238A80] transition-all duration-300 hover:scale-110 z-50"
+          aria-label="เพิ่มรายการ"
+        >
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+        </button>
+
+        {/* Recent Transactions -  */}
+        <div className="mb-8">
+          <p className="text-xs text-slate-500 mb-4 uppercase tracking-wide">Recent Transactions</p>
+          
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h3 className="text-lg font-bold text-[#299D91] mb-6">ธุรกรรมล่าสุด</h3>
+            
+            {loading ? (
+              <p className="text-slate-500 text-center py-8">กำลังโหลด...</p>
+            ) : error ? (
+              <p className="text-red-600 text-center py-8">{error}</p>
+            ) : stats.recentTransactions.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">ไม่มีธุรกรรมล่าสุด</p>
+            ) : (
+              <div className="space-y-1">
+                {stats.recentTransactions.map((txn, index) => (
+                  <div 
+                    key={txn._id} 
+                    className={`flex items-center justify-between py-4 ${
+                      index !== stats.recentTransactions.length - 1 ? 'border-b border-slate-100' : ''
+                    }`}
+                  >
+                    {/* Left: Icon + Details */}
+                    <div className="flex items-center gap-4">
+                      {/* Category Icon */}
+                      <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-sm font-semibold">
+                          {txn.category?.name?.charAt(0).toUpperCase() || 'T'}
+                        </span>
+                      </div>
+                      
+                      {/* Transaction Info */}
+                      <div>
+                        <p className="font-semibold text-slate-800 text-sm">
+                          {txn.category?.name || 'หมวดหมู่ไม่ระบุ'}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {new Date(txn.createdAt).toLocaleDateString('th-TH', { 
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right: Amount */}
+                    <div className={`text-sm font-semibold ${
+                      txn.type === 'income' ? 'text-[#299D91]' : 'text-[#FF6B6B]'
+                    }`}>
+                      {txn.type === 'expense' ? '-' : '+'}{txn.amount.toLocaleString()} บาท
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </div>
-  </main>
-);
+
+      </div>
+    </main>
+  );
 }
