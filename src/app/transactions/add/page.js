@@ -325,148 +325,253 @@ export default function AddTransaction() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F5F5F5]" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
-      <div className="bg-white rounded-2xl shadow-lg max-w-2xl mx-auto overflow-hidden">
-        {/* Header bar */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b">
-          <Link href="/dashboard" className="text-[#299D91] font-semibold hover:underline">Cancel</Link>
-          <h2 className="text-lg font-bold text-gray-800">บันทึกรายรับ-รายจ่าย</h2>
-          <button form="txn-form" type="submit" className="text-[#299D91] font-semibold hover:underline">Save</button>
-        </div>
+    <main className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-cyan-50 flex-1 w-full" style={{ fontFamily: 'Noto Sans Thai, sans-serif' }}>
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#299D91]/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse delay-200"></div>
+      </div>
 
-        {error && (
-          <div className="bg-red-100 text-red-600 p-3 rounded-lg m-6 flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" />
-            </svg>
-            {error}
-          </div>
-        )}
-
-        <form id="txn-form" onSubmit={handleSubmit} className="space-y-5 p-6">
-          {/* Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">จำนวนเงิน (บาท)</label>
-            <input
-              type="number"
-              step="1"
-              min="0" 
-              value={formData.amount}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  amount: e.target.value < 0 ? 0 : e.target.value, 
-                })
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-gray-700"
-              placeholder="เช่น 500"
-              required
-            />
+      <div className="max-w-xl mx-auto px-4 py-4 relative z-10">
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+          {/* Header bar */}
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#299D91] to-[#238A80] text-white">
+            <Link href="/dashboard" className="font-semibold hover:underline flex items-center space-x-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span>Cancel</span>
+            </Link>
+            <h2 className="text-base font-bold">บันทึกรายรับ-รายจ่าย</h2>
+            <button form="txn-form" type="submit" className="font-semibold hover:underline flex items-center space-x-1">
+              <span>Save</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
           </div>
 
-          {/* Type Toggle */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">ประเภท</label>
-            <div className="inline-flex bg-gray-200 rounded-lg overflow-hidden border border-gray-200">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: 'income' })}
-                className={`px-5 py-3 font-semibold transition-colors ${formData.type==='income' ? 'bg-[#299D91] text-white' : 'bg-white text-gray-700'}`}
-              >
-                รายรับ
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: 'expense' })}
-                className={`px-5 py-3 font-semibold transition-colors ${formData.type==='expense' ? 'bg-[#299D91] text-white' : 'bg-white text-gray-700'}`}
-              >
-                รายจ่าย
-              </button>
-            </div>
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">หมวดหมู่</label>
-            <CategoryPopup
-              categories={categories}
-              formData={formData}
-              selectCategory={selectCategory}
-              deleteCategory={deleteCategory}
-              setShowAddCategoryModal={setShowAddCategoryModal}
-            />
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">วันที่</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-gray-700"
-                required
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
-                </svg>
+          {error && (
+            <div className="bg-red-500/10 border-l-4 border-red-500 p-3 rounded-r-lg flex items-start space-x-2 shadow-lg backdrop-blur-xl m-4">
+              <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+              </svg>
+              <div className="flex-1">
+                <p className="text-xs font-medium text-red-300">{error}</p>
               </div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">โน็ต (ถ้ามี)</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] text-gray-700"
-              placeholder="เช่น ซื้ออาหารที่ร้าน ศศิ"
-              rows="3"
-            />
-          </div>
-
-          {/* Voice Recording */}
-          {isSpeechSupported && (
-            <div>
-              <button
-                type="button"
-                onClick={isRecording ? stopRecording : startRecording}
-                className="w-full p-3 rounded-lg flex items-center justify-center space-x-2 transition-colors text-white"
-                style={{ backgroundColor: isRecording ? '#d8c2c2' : '#00C8D2' }}
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7.001 7.001 0 006 6.93V17a1 1 0 102 0v-2.07z" clipRule="evenodd" />
-                </svg>
-                <span>{isRecording ? 'หยุดการบันทึกเสียง' : 'บันทึกด้วยเสียง'}</span>
-              </button>
-              {transcript && (
-                <div className="mt-3 p-3 bg-gray-100 rounded-lg text-gray-700">
-                  <p className="text-sm">ข้อความที่บันทึก: {transcript}</p>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex space-x-4 pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-[#299D91] text-white rounded-lg hover:bg-[#238A80] transition-colors disabled:bg-gray-400 font-semibold"
-            >
-              {loading ? 'กำลังบันทึก...' : 'บันทึก'}
-            </button>
-            <Link
-              href="/dashboard"
-              className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-center transition-colors font-semibold"
-            >
-              ยกเลิก
-            </Link>
-          </div>
-        </form>
+          <form id="txn-form" onSubmit={handleSubmit} className="space-y-4 p-4">
+            {/* Amount */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1">
+                <div className="p-1 bg-green-100 rounded">
+                  <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+                <span>จำนวนเงิน (บาท)</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="1"
+                  min="0" 
+                  value={formData.amount}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      amount: e.target.value < 0 ? 0 : e.target.value, 
+                    })
+                  }
+                  className="w-full px-3 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] focus:border-transparent text-gray-700 text-base font-medium transition-all duration-200"
+                  placeholder="เช่น 500"
+                  required
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <span className="text-gray-400 font-medium text-sm">฿</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Type Toggle */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1">
+                <div className="p-1 bg-blue-100 rounded">
+                  <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span>ประเภท</span>
+              </label>
+              <div className="inline-flex bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: 'income' })}
+                  className={`px-4 py-3 font-semibold transition-all duration-200 flex items-center space-x-1 ${
+                    formData.type==='income' 
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg transform scale-105' 
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                  </svg>
+                  <span>รายรับ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: 'expense' })}
+                  className={`px-4 py-3 font-semibold transition-all duration-200 flex items-center space-x-1 ${
+                    formData.type==='expense' 
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg transform scale-105' 
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                  </svg>
+                  <span>รายจ่าย</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1">
+                <div className="p-1 bg-purple-100 rounded">
+                  <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                </div>
+                <span>หมวดหมู่</span>
+              </label>
+              <CategoryPopup
+                categories={categories}
+                formData={formData}
+                selectCategory={selectCategory}
+                deleteCategory={deleteCategory}
+                setShowAddCategoryModal={setShowAddCategoryModal}
+              />
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1">
+                <div className="p-1 bg-orange-100 rounded">
+                  <svg className="w-3 h-3 text-orange-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span>วันที่</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full px-3 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] focus:border-transparent text-gray-700 text-base font-medium transition-all duration-200"
+                  required
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1">
+                <div className="p-1 bg-indigo-100 rounded">
+                  <svg className="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <span>โน็ต (ถ้ามี)</span>
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="w-full px-3 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#299D91] focus:border-transparent text-gray-700 text-base font-medium transition-all duration-200 resize-none"
+                placeholder="เช่น ซื้ออาหารที่ร้าน ศศิ"
+                rows="2"
+              />
+            </div>
+
+            {/* Voice Recording */}
+            {isSpeechSupported && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1">
+                  <div className="p-1 bg-cyan-100 rounded">
+                    <svg className="w-3 h-3 text-cyan-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </div>
+                  <span>บันทึกด้วยเสียง</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`w-full p-3 rounded-lg flex items-center justify-center space-x-2 transition-all duration-200 text-white font-semibold shadow-lg ${
+                    isRecording 
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform scale-105' 
+                      : 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7.001 7.001 0 006 6.93V17a1 1 0 102 0v-2.07z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm">{isRecording ? 'หยุดการบันทึกเสียง' : 'บันทึกด้วยเสียง'}</span>
+                </button>
+                {transcript && (
+                  <div className="mt-3 p-3 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg border border-cyan-200">
+                    <p className="text-xs text-gray-700 font-medium">ข้อความที่บันทึก: {transcript}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-[#299D91] to-[#238A80] text-white rounded-lg hover:from-[#238A80] hover:to-[#1f7a72] transition-all duration-200 disabled:bg-gray-400 font-semibold text-base shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:shadow-none"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm">กำลังบันทึก...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>บันทึก</span>
+                  </div>
+                )}
+              </button>
+              <Link
+                href="/dashboard"
+                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-center transition-all duration-200 font-semibold text-base border-2 border-gray-200 hover:border-gray-300"
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>ยกเลิก</span>
+                </div>
+              </Link>
+            </div>
+          </form>
+        </div>
       </div>
 
       {/* Add Category Modal */}
