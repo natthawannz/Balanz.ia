@@ -27,8 +27,8 @@ const authMiddleware = (req, res, next) => {
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'ใส่อีเมลล์ที่ใช้ส่ง', // 
-    pass: 'รหัสผ่าน App Password ', // 
+    user: 'Natthawan1502@gmail.com',
+    pass: 'ycgfwhrgroawxnvt', // 
   },
 });
 
@@ -158,7 +158,7 @@ router.post('/forgot-password', async (req, res) => {
 const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
 
 const mailOptions = {
-  from: 'basedseo.online@gmail.com',
+  from: 'Natthawan1502@gmail.com',
   to: email,
   subject: 'รีเซ็ตรหัสผ่านของคุณ | SAVEi 💙',
   html: `
