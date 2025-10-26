@@ -17,30 +17,19 @@ export default function Home() {
     <main className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-white min-h-screen">
-        {/* Top brand header */}
-        <div className="w-full px-6 md:px-10 pt-6 md:pt-8">
-          <Link href="/" className="text-[#4db8a8] font-extrabold text-xl md:text-2xl hover:text-[#3d9888] transition-colors inline-block">
-            Balanz<span className="text-gray-700">.IA</span>
-          </Link>
-        </div>
 
         <div className="max-w-6xl mx-auto px-6 md:px-10 py-8 md:py-20 grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
           <div className="md:col-span-6">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight text-gray-800 mb-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight text-[#191919] mb-4">
               ยินดีต้อนรับเข้าสู่{' '}
               <span className="text-[#4db8a8]">Balanz</span>
-              <span className="text-gray-700">.IA</span>
+              <span className="text-[#191919]">.IA</span>
             </h1>
             
-            <p className="text-gray-500 text-base md:text-lg mb-3">
+            <p className="text-[#191919] text-base md:text-lg mb-3">
               จัดการการเงินของคุณได้อย่างง่ายดายและมีประสิทธิภาพ
             </p>
             
-            <p className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-700 mb-8 md:mb-10">
-              Manage your finances
-              <br /> easily and efficiently
-            </p>
-
             {!isLoggedIn && (
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4">
                 {/* ปุ่มเริ่มต้นใช้งาน - Mobile Optimized */}

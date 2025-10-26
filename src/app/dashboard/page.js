@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-// Define the primary color constants (Teal theme)
-const PRIMARY_COLOR_LIGHT = '#4db8a8';
-const PRIMARY_COLOR_DARK = '#299D91';
-const INCOME_COLOR = '#4CAF50'; // Green
-const EXPENSE_COLOR = '#FF6B6B'; // Red
-const NET_SAVING_COLOR = '#FF9800'; // Orange/Amber
+// Define the primary color constants (Teal theme - ใช้สีเดียวกับ Landing)
+const PRIMARY_COLOR = '#4db8a8';
+const PRIMARY_COLOR_DARK = '#3d9888';
+const INCOME_COLOR = '#10b981'; // Emerald green
+const EXPENSE_COLOR = '#ef4444'; // Red
+const NET_SAVING_COLOR = '#f59e0b'; // Amber
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -18,8 +18,6 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [displayName, setDisplayName] = useState('ผู้ใช้');
-  const [notificationCount, setNotificationCount] = useState(0);
 
   const monthNames = [
     'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -27,18 +25,15 @@ export default function Dashboard() {
   ];
 
   /* --- Data & Logic Setup --- */
-
   const getMonths = () => {
     const currentDate = new Date();
-    // Assuming you want years in Thai Buddhist year (B.E. 2567 = A.D. 2024 + 543)
     const currentYear = currentDate.getFullYear() + 543; 
     const currentMonth = currentDate.getMonth();
     const months = [];
-    const span = 12; // Adjusted span to reduce the size for simple testing, can be changed back to 19
+    const span = 12;
 
     for (let i = -span; i <= span; i++) { 
-      const monthIndex = (currentMonth + i) % 12; // Allows negative indexing
-      // Adjust year relative to month index
+      const monthIndex = (currentMonth + i) % 12;
       let yearOffset = Math.floor((currentMonth + i) / 12);
       if (monthIndex < 0) {
         yearOffset -= 1; 
@@ -54,35 +49,14 @@ export default function Dashboard() {
   const currentDate = new Date();
   const currentMonthYear = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear() + 543}`;
   
-  // Find the exact current month index among the generated list
   const currentMonthInitialIndex = months.findIndex(m => m === currentMonthYear);
   const [currentMonthIndex, setCurrentMonthIndex] = useState(currentMonthInitialIndex !== -1 ? currentMonthInitialIndex : Math.floor(months.length / 2));
   const selectedMonth = months[currentMonthIndex];
 
-
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const storedName = localStorage.getItem('name') || localStorage.getItem('displayName');
-    if (storedName) setDisplayName(storedName);
 
-    // Function to calculate Thai Buddhist Year from a Date object
     const getThaiYear = (date) => date.getFullYear() + 543;
-
-    const fetchBadge = async () => {
-      // Logic for fetching budget alert badge remains here
-      try {
-        if (!token) return;
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
-        const res = await fetch(`${API_BASE}/api/check-budget`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        });
-        const raw = await res.text();
-        let data; 
-        try { data = JSON.parse(raw); } catch { data = {}; }
-        if (res.ok) setNotificationCount(data.alertCount || 0);
-      } catch {}
-    };
 
     const fetchStats = async () => {
       setLoading(true);
@@ -96,7 +70,6 @@ export default function Dashboard() {
         }     
         const transactions = await res.json();
         
-        // Filter transactions based on the selectedMonth (T.H. year)
         const selectedMonthName = selectedMonth.split(' ')[0];
         const selectedYear = selectedMonth.split(' ')[1];
 
@@ -122,31 +95,27 @@ export default function Dashboard() {
           totalIncome,
           totalExpenses,
           netSavings: totalIncome - totalExpenses,
-          recentTransactions: sortedTransactions.slice(0, 5), // Show up to 5 recent
+          recentTransactions: sortedTransactions.slice(0, 5),
         });
         setError('');
         
       } catch (error) {
         setError('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + (error.message || 'Error'));
-        setStats({ totalIncome: 0, totalExpenses: 0, netSavings: 0, recentTransactions: [] }); // Clear old data on error
+        setStats({ totalIncome: 0, totalExpenses: 0, netSavings: 0, recentTransactions: [] });
       } finally {
         setLoading(false);
       }
     };
 
     if (!token) {
-        // Redirection if not authenticated (basic check)
         window.location.href = '/login';
         return;
     }
 
-    fetchBadge();
     fetchStats();
     
-    // Interval logic cleanup remains the same, adjusted slightly for clarity of scope
-    // Note: The original interval comparison logic was complex due to mixing AD and BE years, simplified here.
-    return () => {}; // Cleanup function
-  }, [selectedMonth]); // Dependency on selectedMonth ensures data refetch when month changes
+    return () => {};
+  }, [selectedMonth]);
 
   const formatCurrentDate = () => {
     const d = new Date();
@@ -155,136 +124,135 @@ export default function Dashboard() {
     const year = d.getFullYear() + 543;
     return `${m} ${day}, ${year}`;
   };
-  
-  const getIconForType = (type) => {
-      // Simple icon retrieval based on transaction type
-      return type === 'income' ? 
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-6.832 0-11 3.208-11 7 0 1.258.8 2.378 1.942 3.864M12 17a5 5 0 100-10 5 5 0 000 10zM12 11V7m0 8h.01"></path></svg> 
-          : 
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>;
-  };
-  
-  const getNetSavingColorClass = (netSavings) => {
-    if (netSavings > 0) return `text-[${INCOME_COLOR}]`; // Green for surplus
-    if (netSavings < 0) return `text-[${EXPENSE_COLOR}]`; // Red for deficit
-    return `text-[${NET_SAVING_COLOR}]`; // Orange for zero
-  }
 
-  /* --- JSX Rendering Starts Here --- */
+  /* --- JSX Rendering --- */
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main className="min-h-screen bg-white">
+      <div className="max-w-6xl mx-auto px-6 md:px-10 py-8 md:py-12">
         
-        {/* Header & Greetings */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-800 mb-1">
-              สวัสดี {displayName}
-            </h1>
-            <p className="text-sm text-slate-500 font-medium">{formatCurrentDate()}</p>
-          </div>
-          
-          {/* Notification Badge */}
-          <Link href="/alerts" className="relative p-3 rounded-full bg-white shadow hover:bg-gray-100 transition duration-150">
-             <svg className="w-6 h-6 text-slate-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
-             {notificationCount > 0 && (
-                 <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                     {notificationCount > 9 ? '9+' : notificationCount}
-                 </span>
-             )}
-          </Link>
+        {/* Header */}
+        <div className="mb-8">
+          <p className="text-sm text-gray-500 font-medium flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            {formatCurrentDate()}
+          </p>
         </div>
 
         {/* Month Navigation Panel */}
-        <div className="mb-10 bg-white rounded-xl shadow-lg border border-gray-100 p-4">
-          <p className="text-xs text-slate-500  mb-3 uppercase tracking-wide font-semibold">สรุปผลเดือน</p>
+        <div className="mb-8 bg-gradient-to-br from-[#4db8a8] to-[#3d9888] rounded-xl shadow-lg p-5">
+          <p className="text-xs text-white/80 mb-3 uppercase tracking-wide font-semibold flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            ช่วงเดือน
+          </p>
           <div className="flex items-center justify-between">
             <button
               onClick={() => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 0))}
-              className="p-2 text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50"
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all disabled:opacity-30"
               disabled={currentMonthIndex === 0}
               aria-label="เดือนก่อนหน้า"
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
+              </svg>
             </button>
             
             <div className="text-center">
-              <span style={{ color: PRIMARY_COLOR_DARK }} className="text-xl font-bold">
+              <span className="text-xl md:text-2xl font-bold text-white">
                 {selectedMonth}
               </span>
             </div>
             
             <button
               onClick={() => setCurrentMonthIndex((prev) => (prev < months.length - 1 ? prev + 1 : months.length - 1))}
-              className="p-2 text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50"
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all disabled:opacity-30"
               disabled={currentMonthIndex === months.length - 1}
               aria-label="เดือนถัดไป"
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
+              </svg>
             </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Error Message */}
         {error && (
-          <p className="text-red-600 mb-8 p-4 bg-red-100 border border-red-300 rounded-xl font-medium">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+            </svg>
+            <p className="text-red-700 font-medium text-sm">{error}</p>
+          </div>
         )}
         
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           
           {/* Income Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 border-b-4 border-green-400/50 transform hover:scale-[1.02] transition-transform duration-300">
+          <div className="bg-white rounded-xl border-2 border-gray-100 p-6 hover:border-emerald-200 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 group">
             <div className="flex items-center justify-between mb-4">
-               <p className="text-lg font-semibold text-slate-700">รายรับรวม</p>
-               <div className="p-2 rounded-full bg-green-100 text-green-600">
-                   {getIconForType('income')}
+               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                   {/* Trending Up Icon */}
+                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                   </svg>
                </div>
+               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Income</p>
             </div>
-            <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Income</p>
-            <div className="flex items-end gap-2">
-              <span className={`text-4xl font-bold`} style={{ color: INCOME_COLOR }}>
+            <p className="text-sm font-semibold text-gray-700 mb-2">รายรับรวม</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl md:text-4xl font-bold text-emerald-600">
                 {loading ? '---' : stats.totalIncome.toLocaleString()}
               </span>
-              <span className="text-xl font-bold text-slate-500">฿</span>
+              <span className="text-lg font-bold text-gray-400">฿</span>
             </div>
           </div>
 
           {/* Expense Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 border-b-4 border-red-400/50 transform hover:scale-[1.02] transition-transform duration-300">
+          <div className="bg-white rounded-xl border-2 border-gray-100 p-6 hover:border-red-200 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 group">
             <div className="flex items-center justify-between mb-4">
-               <p className="text-lg font-semibold text-slate-700">รายจ่ายรวม</p>
-               <div className="p-2 rounded-full bg-red-100 text-red-600">
-                   {getIconForType('expense')}
+               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                   {/* Trending Down Icon */}
+                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                   </svg>
                </div>
+               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Expense</p>
             </div>
-            <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Expense</p>
-            <div className="flex items-end gap-2">
-              <span className={`text-4xl font-bold`} style={{ color: EXPENSE_COLOR }}>
+            <p className="text-sm font-semibold text-gray-700 mb-2">รายจ่ายรวม</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl md:text-4xl font-bold text-red-600">
                 {loading ? '---' : stats.totalExpenses.toLocaleString()}
               </span>
-              <span className="text-xl font-bold text-slate-500">฿</span>
+              <span className="text-lg font-bold text-gray-400">฿</span>
             </div>
           </div>
 
           {/* Net Balance Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 border-b-4 border-yellow-400/50 transform hover:scale-[1.02] transition-transform duration-300">
+          <div className="bg-white rounded-xl border-2 border-gray-100 p-6 hover:border-amber-200 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 group">
             <div className="flex items-center justify-between mb-4">
-               <p className="text-lg font-semibold text-slate-700">ยอดคงเหลือสุทธิ</p>
-               <div className="p-2 rounded-full bg-yellow-100 text-yellow-600">
-                   {/* Net Savings Icon */}
-                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9.828a2 2 0 00-1.414.586L4 17m0 0V5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H6m-2 0l-2 2"/></svg>
+               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                   {/* Wallet Icon */}
+                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                   </svg>
                </div>
+               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Balance</p>
             </div>
-            <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Net Savings</p>
-            <div className="flex items-end gap-2">
+            <p className="text-sm font-semibold text-gray-700 mb-2">ยอดคงเหลือสุทธิ</p>
+            <div className="flex items-baseline gap-2">
               <span 
-                className={`text-4xl font-bold ${getNetSavingColorClass(stats.netSavings)}`} 
+                className={`text-3xl md:text-4xl font-bold`}
                 style={{ color: stats.netSavings >= 0 ? INCOME_COLOR : EXPENSE_COLOR }}
                >
                 {loading ? '---' : Math.abs(stats.netSavings).toLocaleString()}
               </span>
-              <span className="text-xl font-bold text-slate-500">฿</span>
+              <span className="text-lg font-bold text-gray-400">฿</span>
             </div>
           </div>
 
@@ -292,52 +260,91 @@ export default function Dashboard() {
 
         {/* Recent Transactions Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-4 border-l-4 pl-3 border-[#4db8a8]">ธุรกรรมล่าสุด (5 รายการ)</h2>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-1 h-8 bg-[#4db8a8] rounded-full"></div>
+            <h2 className="text-xl md:text-2xl font-bold text-[#191919] flex items-center gap-2">
+              <svg className="w-6 h-6 text-[#4db8a8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              ธุรกรรมล่าสุด
+            </h2>
+          </div>
           
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 space-y-4">
+          <div className="bg-white rounded-xl border-2 border-gray-100 p-5 md:p-6">
             
             {loading ? (
-              <p className="text-slate-500 text-center py-8">กำลังโหลด...</p>
+              <div className="text-center py-12">
+                <div className="inline-block w-8 h-8 border-4 border-gray-200 border-t-[#4db8a8] rounded-full animate-spin"></div>
+                <p className="text-gray-500 mt-3 text-sm">กำลังโหลด...</p>
+              </div>
             ) : stats.recentTransactions.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">ไม่มีธุรกรรมในเดือนนี้</p>
+              <div className="text-center py-12">
+                <svg className="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p className="text-gray-500 text-sm font-medium">ไม่มีธุรกรรมในเดือนนี้</p>
+                <p className="text-gray-400 text-xs mt-1">เริ่มต้นเพิ่มรายการแรกของคุณ</p>
+              </div>
             ) : (
-              <div className="divide-y divide-gray-100">
-                {stats.recentTransactions.map((txn) => (
+              <div className="space-y-1">
+                {stats.recentTransactions.map((txn, index) => (
                   <div 
                     key={txn._id} 
-                    className="flex items-center justify-between py-4 hover:bg-gray-50 transition-colors px-2 rounded-lg"
+                    className={`flex items-center justify-between py-4 px-3 hover:bg-gray-50 rounded-lg transition-colors ${
+                      index !== stats.recentTransactions.length - 1 ? 'border-b border-gray-100' : ''
+                    }`}
                   >
                     {/* Left: Icon + Details */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                       {/* Icon Container */}
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                           style={{ backgroundColor: txn.type === 'income' ? INCOME_COLOR : EXPENSE_COLOR, color: 'white' }}>
-                        
+                      <div 
+                        className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-white shadow-md"
+                        style={{ 
+                          background: txn.type === 'income' 
+                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+                            : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                        }}
+                      >
                         {txn.type === 'income' ? 
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg> :
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 112 0v11.586l4.293-4.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                            // Money Receive Icon
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
+                            </svg> :
+                            // Money Send Icon
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/>
+                            </svg>
                         }
                       </div>
                       
                       {/* Transaction Info */}
-                      <div>
-                        <p className="font-semibold text-slate-800 text-base">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-[#191919] text-sm md:text-base truncate">
                           {txn.category?.name || 'หมวดหมู่ไม่ระบุ'}
                         </p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-gray-500 truncate flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                          </svg>
                           {new Date(txn.date).toLocaleDateString('th-TH', { 
                             day: 'numeric',
                             month: 'short',
                           })}
-                          {' | '}
-                          {txn.description}
+                          {txn.description && (
+                            <>
+                              {' • '}
+                              <span className="hidden sm:inline">{txn.description}</span>
+                            </>
+                          )}
                         </p>
                       </div>
                     </div>
 
                     {/* Right: Amount */}
-                    <div className={`text-lg font-bold flex-shrink-0 ml-4`}
-                         style={{ color: txn.type === 'income' ? INCOME_COLOR : EXPENSE_COLOR }}>
+                    <div 
+                      className="text-base md:text-lg font-bold flex-shrink-0 ml-3 md:ml-4"
+                      style={{ color: txn.type === 'income' ? INCOME_COLOR : EXPENSE_COLOR }}
+                    >
                       {txn.type === 'expense' ? '-' : '+'}{txn.amount.toLocaleString()} ฿
                     </div>
                   </div>
@@ -346,11 +353,19 @@ export default function Dashboard() {
             )}
             
             {/* View All Link */}
-             <div className="pt-2 text-center">
-                <Link href="/transactions" style={{ color: PRIMARY_COLOR_DARK }} className="text-sm font-semibold hover:underline">
-                    ดูธุรกรรมทั้งหมด &rarr;
+            {stats.recentTransactions.length > 0 && (
+              <div className="pt-4 mt-4 border-t border-gray-100 text-center">
+                <Link 
+                  href="/transactions" 
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#4db8a8] hover:text-[#3d9888] transition-colors group"
+                >
+                    ดูธุรกรรมทั้งหมด
+                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                    </svg>
                 </Link>
-             </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -359,11 +374,14 @@ export default function Dashboard() {
       {/* Floating Action Button (FAB) */}
       <Link
         href="/transactions/add"
-        className="fixed right-8 bottom-8 w-16 h-16 rounded-full shadow-2xl text-white flex items-center justify-center transition-all duration-300 hover:scale-110 z-50"
-        style={{ backgroundColor: PRIMARY_COLOR_DARK, boxShadow: `0 10px 20px rgba(41, 157, 145, 0.5)` }}
+        className="fixed right-6 md:right-8 bottom-6 md:bottom-8 w-14 h-14 md:w-16 md:h-16 rounded-2xl shadow-2xl text-white flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 z-50 group"
+        style={{ 
+          background: 'linear-gradient(135deg, #4db8a8 0%, #3d9888 100%)',
+          boxShadow: `0 10px 25px rgba(77, 184, 168, 0.4)` 
+        }}
         aria-label="เพิ่มรายการ"
       >
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+        <svg className="w-7 h-7 md:w-8 md:h-8 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
         </svg>
       </Link>
