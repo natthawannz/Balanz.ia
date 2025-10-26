@@ -79,7 +79,7 @@ export default function Notifications() {
             <h3 className="text-lg font-semibold text-slate-800 mb-2">เกิดข้อผิดพลาด</h3>
             <p className="text-red-600 mb-4">{error}</p>
             <Link
-              href="/"
+              href="/dashboard"
               className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors"
             >
               กลับหน้าหลัก

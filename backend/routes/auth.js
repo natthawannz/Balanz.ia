@@ -3,6 +3,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+const path = require('path');
+
 
 // Middleware to verify JWT
 const authMiddleware = (req, res, next) => {
@@ -17,6 +21,17 @@ const authMiddleware = (req, res, next) => {
     res.status(401).json({ message: 'Invalid token' });
   }
 };
+
+
+// Configure Nodemailer
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'ใส่อีเมลล์ที่ใช้ส่ง', // 
+    pass: 'รหัสผ่าน App Password ', // 
+  },
+});
+
 
 // Register
 router.post('/register', async (req, res) => {
@@ -126,4 +141,97 @@ router.post('/change-password', authMiddleware, async (req, res) => {
   }
 });
 
+// Forgot Password
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'Email not found' });
+
+    const token = crypto.randomBytes(20).toString('hex');
+    const resetPasswordExpires = Date.now() + 3600000; // 1 ชั่วโมง
+
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = resetPasswordExpires;
+    await user.save();
+
+const resetUrl = `http://localhost:3000/reset-password?token=${token}`;
+
+const mailOptions = {
+  from: 'basedseo.online@gmail.com',
+  to: email,
+  subject: 'รีเซ็ตรหัสผ่านของคุณ | SAVEi 💙',
+  html: `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #D9F7F8; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+      
+      <!-- Header -->
+      <div style="background-color: #6BE2E4; padding: 30px; text-align: center;">
+        <img src="cid:savei_logo" alt="SAVEi Logo" width="100" style="margin-bottom: 10px;" />
+        <h2 style="color: #004E53; margin: 0;">ยินดีต้อนรับสู่ <b>SAVEi</b> 👋</h2>
+        <p style="color: #004E53; margin: 5px 0 0;">จัดการการเงินของคุณได้อย่างง่ายดายและมีประสิทธิภาพ</p>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 30px; color: #333;">
+        <p>คุณได้ทำการร้องขอเพื่อรีเซ็ตรหัสผ่านของบัญชี <b>SAVEi</b> ของคุณ</p>
+        <p>กรุณาคลิกลิงก์ด้านล่างเพื่อเปลี่ยนรหัสผ่านใหม่ของคุณ 👇</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}"
+            style="background: linear-gradient(90deg, #6BE2E4 0%, #25BCC1 100%); color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+            🔐 รีเซ็ตรหัสผ่านของฉัน
+          </a>
+        </div>
+        <p>ลิงก์นี้จะหมดอายุภายใน <b>1 ชั่วโมง</b> เพื่อความปลอดภัยของบัญชีคุณ</p>
+        <p>หากคุณไม่ได้ร้องขอการรีเซ็ตรหัสผ่าน โปรดละเว้นอีเมลฉบับนี้</p>
+        <br>
+        <p style="color: #555;">ขอแสดงความนับถือ,<br><b>ทีมงาน SAVEi 💙</b></p>
+      </div>
+
+      <!-- Footer -->
+      <div style="background-color: #E6FBFC; text-align: center; padding: 10px; font-size: 12px; color: #888;">
+        <p>© 2025 SAVEi — Smart Finance Platform</p>
+      </div>
+    </div>
+  </div>
+  `,
+  attachments: [
+    {
+      filename: 'Balanz.png',
+      path: path.join(__dirname, '../../public/Balanz.png'), // <-- ใช้ path จริงของไฟล์
+      cid: 'savei_logo', // ต้องตรงกับ src="cid:savei_logo" ใน HTML
+    },
+  ],
+};
+    await transporter.sendMail(mailOptions);
+    res.json({ message: 'Reset password link sent to your email' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 module.exports = router;

@@ -2,473 +2,482 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import './globals.css';
+import './globals.css'; // Make sure this file exists and is correctly styled
 
+// --- Constants ---
+const PRIMARY_TEXT_CLASS = 'text-primary'; // Assuming 'text-primary' uses var(--primary)
+const PRIMARY_BG_CLASS = 'bg-primary';     // Assuming 'bg-primary' uses var(--primary)
+const SIDEBAR_WIDTH_FULL = 'w-80'; // 320px
+const SIDEBAR_WIDTH_COLLAPSED = 'w-24'; // 96px
+
+// --- Icon Components (Placeholder SVGs for simplicity) ---
+// Replace these with your actual icon components or image tags if preferred
+const IconHome = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>;
+const IconAddTransaction = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>; // Example icon
+const IconBudget = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 8h6m-5 0a3 3 0 110 6H9l-4 4V8a4 4 0 014-4h6a4 4 0 014 4v6m-5 0a3 3 0 100-6h-6l-4 4V8a4 4 0 004-4h6a4 4 0 004 4v6"></path></svg>; // Example icon
+const IconExchange = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m-5 3H4m0 0l4 4m-4-4l4-4"></path></svg>; // Example icon
+const IconAnalytics = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>; // Example icon
+const IconNotifications = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>;
+const IconProfile = () => <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"/></svg>;
+const IconLogout = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"/></svg>;
+const IconMenu = () => <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M3 5.75A.75.75 0 013.75 5h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 5.75zM3 11.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75zM3.75 17h16.5a.75.75 0 010 1.5H3.75a.75.75 0 010-1.5z" clipRule="evenodd"/></svg>;
+const IconClose = () => <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M18.27 5.73a.75.75 0 00-1.06-1.06L12 10.94 6.79 5.73a.75.75 0 10-1.06 1.06L10.94 12l-5.21 5.21a.75.75 0 101.06 1.06L12 13.06l5.21 5.21a.75.75 0 101.06-1.06L13.06 12l5.21-5.21a.75.75 0 000-1.06z" clipRule="evenodd"/></svg>;
+const IconChevronRight = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>;
+const IconCheck = () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>;
+const IconSidebarToggleExpand = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>; // Example Icon
+const IconSidebarToggleCollapse = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>; // Example Icon
+
+// --- Root Layout Component ---
 export default function RootLayout({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [avatarUrl, setAvatarUrl] = useState('');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
+  const [notificationCount, setNotificationCount] = useState(0); // Example count
+  const [avatarUrl, setAvatarUrl] = useState(''); //'/path/to/avatar.jpg'
   const [displayName, setDisplayName] = useState('');
   const pathname = usePathname();
-  const isHome = pathname === '/';
-  const isLanding = isHome || pathname === '/register' || pathname === '/login' || pathname === '/change-password' || pathname === '/forgot-password' || pathname === '/reset-password';
 
+  // Determine if it's a landing/auth page
+  const isLanding = 
+    pathname === '/' || 
+    pathname === '/register' || 
+    pathname === '/login' || 
+    pathname === '/change-password' || 
+    pathname === '/forgot-password' || 
+    pathname === '/reset-password';
+    
+  // --- Effects ---
   useEffect(() => {
+    // Check local storage on mount
     const token = localStorage.getItem('token');
     setIsLoggedIn(!!token);
+    
+    const storedName = localStorage.getItem('name') || localStorage.getItem('displayName') || 'ผู้ใช้';
+    setDisplayName(storedName);
+    
+    const localAvatar = localStorage.getItem('avatarUrl');
+    if (localAvatar) setAvatarUrl(localAvatar);
+
+    // Fetch initial notification count if logged in
     if (token) {
       fetchNotificationCount(token);
     }
-    const storedName = localStorage.getItem('name') || localStorage.getItem('displayName');
-    if (storedName) setDisplayName(storedName);
-    const localAvatar = localStorage.getItem('avatarUrl');
-    if (localAvatar) setAvatarUrl(localAvatar);
-  }, []);
+    // Simple example: Set a notification count after a delay
+    // const timer = setTimeout(() => setNotificationCount(3), 2000);
+    // return () => clearTimeout(timer);
 
+  }, []); // Empty dependency array means this runs once on mount
+
+  // --- Handlers ---
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('name');
-    localStorage.removeItem('displayName');
+    localStorage.clear();
     setIsLoggedIn(false);
-    window.location.href = '/';
+    setAvatarUrl('');
+    setDisplayName('');
+    window.location.href = '/'; // Redirect to home/login
   };
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const closeMenu = () => setIsMenuOpen(false); // Helper to close menu on link click
+  const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed); 
 
   const isActive = (path) => pathname === path;
 
-  const fetchNotificationCount = async (token) => {
-    try {
-      const res = await fetch('http://localhost:5000/api/check-budget', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setNotificationCount(data.alertCount || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching notification count:', error);
-    }
+  // --- API Call Placeholders ---
+  const fetchNotificationCount = async (token) => { 
+    console.log("Fetching notifications..."); 
+    // Replace with your actual API call
+    // Example: setNotificationCount(await getNotificationCountAPI(token));
+    setNotificationCount(0); // Example
+  };
+  const resetAndFetchNotifications = async (token) => { 
+    console.log("Resetting and fetching notifications..."); 
+    setNotificationCount(0); // Reset immediately
+    // Replace with your actual API call to mark as read and refetch
+    // Example: await markNotificationsReadAPI(token);
+    // setNotificationCount(await getNotificationCountAPI(token));
   };
 
-  const resetAndFetchNotifications = async (token) => {
-    try {
-      const res = await fetch('http://localhost:5000/api/notifications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setNotificationCount(0);
-      }
-    } catch (error) {
-      console.error('Error resetting notifications:', error);
-    }
-  };
+  // --- Reusable Link Components ---
 
-  const NavLink = ({ href, icon, children, badge, onClick }) => (
+  // NavLink for Desktop Sidebar
+  const NavLink = ({ href, icon, children, badge, onClick = () => {} }) => (
     <Link
       href={href}
-      onClick={onClick}
-      className={`group flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-300 ${
+      onClick={() => onClick()} // Execute onClick if provided
+      title={isSidebarCollapsed ? children : ''} // Tooltip when collapsed
+      className={`group flex items-center ${isSidebarCollapsed ? 'justify-center space-x-0 px-2' : 'space-x-4 px-3'} py-3 rounded-xl transition-all duration-300 transform ${
         isActive(href)
-          ? 'bg-gradient-to-r from-primary to-primary/90 text-white shadow-lg shadow-primary/30 scale-[1.02]'
-          : 'text-slate-300 hover:bg-slate-800/50 hover:text-white hover:scale-[1.01]'
+          ? `${PRIMARY_BG_CLASS} text-white shadow-lg shadow-primary/30 scale-[1.02]`
+          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white hover:scale-[1.01]'
       }`}
     >
       <div className={`relative p-2.5 rounded-lg transition-all duration-300 ${
         isActive(href) 
           ? 'bg-white/20 shadow-inner' 
-          : 'bg-slate-700/50 group-hover:bg-slate-600/50'
+          : 'bg-slate-700/50 group-hover:bg-slate-700/80'
       }`}>
         {icon}
         {badge > 0 && (
           <span className="absolute -top-1 -right-1 flex h-5 w-5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-5 w-5 bg-primary items-center justify-center text-[10px] font-bold text-white border-2 border-slate-800">
-              {badge}
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 items-center justify-center text-[10px] font-bold text-white border-2 border-slate-900">
+              {badge > 9 ? '9+' : badge} {/* Limit badge display */}
             </span>
           </span>
         )}
       </div>
-      <span className="font-medium flex-1">{children}</span>
-      {isActive(href) && (
-        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+      <span className={`font-medium flex-1 whitespace-nowrap transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 hidden absolute' : 'opacity-100'}`}>
+        {children}
+      </span>
+      {isActive(href) && !isSidebarCollapsed && (
+        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse ml-auto"></div>
       )}
     </Link>
   );
 
-  const MobileNavLink = ({ href, icon, children, badge, onClick }) => (
+  // NavLink for Mobile Menu
+  const MobileNavLink = ({ href, icon, children, badge, onClick = () => {} }) => (
     <Link
       href={href}
-      onClick={onClick}
+      onClick={() => { onClick(); closeMenu(); }} // Close menu on click
       className={`flex items-center space-x-4 py-4 px-5 rounded-2xl transition-all duration-300 ${
         isActive(href)
-          ? 'bg-gradient-to-r from-[#299D91] to-[#1f7a6f] text-white shadow-xl shadow-[#299D91]/30 scale-[1.02]'
-          : 'text-[#666666] hover:bg-[#F3F3F3] hover:text-[#299D91] hover:scale-[1.01]'
+          ? `bg-gradient-to-r from-primary to-primary/80 text-white shadow-xl shadow-primary/30 scale-[1.02]`
+          : 'text-slate-700 hover:bg-gray-100/80 hover:text-slate-900 hover:scale-[1.01]'
       }`}
     >
       <div className={`relative p-3 rounded-xl transition-all duration-300 ${
-        isActive(href) ? 'bg-white/20' : 'bg-[#F3F3F3]'
+        isActive(href) ? 'bg-white/20' : 'bg-gray-100'
       }`}>
         {icon}
         {badge > 0 && (
           <span className="absolute -top-1 -right-1 flex h-5 w-5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#299D91] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-5 w-5 bg-[#299D91] items-center justify-center text-[10px] font-bold text-white border-2 border-white">
-              {badge}
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75`}></span>
+            <span className={`relative inline-flex rounded-full h-5 w-5 bg-red-600 items-center justify-center text-[10px] font-bold text-white border-2 border-white`}>
+              {badge > 9 ? '9+' : badge}
             </span>
           </span>
         )}
       </div>
       <span className="text-lg font-medium flex-1">{children}</span>
       {isActive(href) && (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-        </svg>
+        <IconCheck />
       )}
     </Link>
   );
 
+  // --- Main Render ---
   return (
-    <html lang="th">
-      <head>
-        <title>Balanz.IA - ระบบจัดการการเงินอัจฉริยะ</title>
-        <meta name="description" content="จัดการการเงินอย่างฉลาดด้วย AI" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap"
-        />
-      </head>
+    
+   <html lang="th">
+        
+  
       <body
-        className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-slate-50"
+        className="min-h-screen flex flex-col bg-gray-50"
         style={{ fontFamily: "'Noto Sans Thai','Inter',sans-serif" }}
       >
-        {/* Mobile Header */}
-        <header className="md:hidden border-b sticky top-0 z-50 bg-white/90 backdrop-blur-xl shadow-lg">
+        {/* Mobile Header (Always visible on mobile) */}
+        <header className="md:hidden border-b sticky top-0 z-50 bg-white/95 backdrop-blur-xl shadow-md">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="flex items-center justify-between py-4">
               <Link href="/" className="flex items-center space-x-3 group">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg shadow-primary/30">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg shadow-primary/30`}>
                   <span className="text-white font-bold text-lg">B</span>
                 </div>
-                <span className="font-extrabold text-xl bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                  Balanz<span className="text-primary">.IA</span>
-      </span>
-                        </Link>
-                        <button
-                onClick={toggleMenu}
-                className="p-3 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 hover:from-slate-200 hover:to-slate-100 text-slate-600 hover:text-slate-800 transition-all duration-300 shadow-md hover:shadow-lg"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {isMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/>
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16m-7 6h7"/>
-                  )}
-                          </svg>
-                        </button>
+                <span className="font-extrabold text-xl text-slate-900">
+                  BALANZ<span className={`text-primary font-light`}>.IA</span>
+                </span>
+              </Link>
+              {/* Show menu button only if logged in or adjust logic as needed */}
+              {isLoggedIn && !isLanding && (
+                <button
+                  onClick={toggleMenu}
+                  className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-all duration-300 shadow-sm"
+                  aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                >
+                  {isMenuOpen ? <IconClose /> : <IconMenu />}
+                </button>
+              )}
             </div>
           </div>
         </header>
 
         <div className="md:flex flex-1">
-          {/* Desktop Sidebar */}
-          {!isLanding && (
-            <aside className="hidden md:flex fixed h-screen w-80 flex-col bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white border-r border-slate-700/50 shadow-2xl overflow-hidden">
+          {/* Desktop Sidebar (Only if logged in and not landing page) */}
+          {isLoggedIn && !isLanding && (
+            <aside 
+              className={`hidden md:flex fixed h-screen top-0 left-0 flex-col bg-slate-900 text-white border-r border-slate-700/50 shadow-2xl transition-all duration-300 z-30 ${isSidebarCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_FULL}`}
+              // style={{ minWidth: isSidebarCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_FULL }} // Tailwind handles width
+            >
               {/* Decorative Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none"></div>
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none opacity-50"></div>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none opacity-30"></div>
               
               {/* Logo Section */}
               <div className="relative px-6 py-8 border-b border-slate-700/50">
-                <Link href="/" className="flex items-center space-x-3 group">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-xl shadow-primary/30">
+                <Link href="/dashboard" className={`flex items-center space-x-3 group transition-opacity duration-300 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-xl shadow-primary/30 ${isSidebarCollapsed ? 'w-14 h-14' : ''}`}>
                     <span className="text-white font-bold text-xl">B</span>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-extrabold text-2xl text-white group-hover:text-primary-light transition-colors">
+                  <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'hidden' : 'visible'}`}>
+                    <span className="font-extrabold text-2xl text-white group-hover:text-primary-light transition-colors whitespace-nowrap">
                       Balanz<span className="text-slate-300">.IA</span>
                     </span>
-                    <span className="text-xs text-slate-400">ระบบจัดการการเงินอัจฉริยะ</span>
+                    <span className="text-xs text-slate-400 whitespace-nowrap">Smart Finance</span>
                   </div>
-              </Link>
-            </div>
+                </Link>
+              </div>
 
               {/* Navigation */}
               <nav className="relative flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-                <NavLink href="/" icon={<img src="/icons/grid.png" alt="" className="w-5 h-5" />}>
-                  หน้าหลัก
-                </NavLink>
-              {isLoggedIn && (
-                <>
-                    <NavLink href="/transactions/add" icon={<img src="/icons/wallet-add.png" alt="" className="w-5 h-5" />}>
-                      เพิ่มรายการธุรกรรม
-                    </NavLink>
-                    <NavLink href="/budget" icon={<img src="/icons/target-dollar.png" alt="" className="w-5 h-5" />}>
-                      งบประมาณ
-                    </NavLink>
-                    <NavLink href="/currency" icon={<img src="/icons/exchange.png" alt="" className="w-5 h-5" />}>
-                      อัตราแลกเปลี่ยน
-                    </NavLink>
-                    <NavLink href="/analytics" icon={<img src="/icons/bars.png" alt="" className="w-5 h-5" />}>
-                      สรุปและวิเคราะห์
-                    </NavLink>
-                    <NavLink 
-                      href="/notifications" 
-                      badge={notificationCount}
-                      onClick={() => resetAndFetchNotifications(localStorage.getItem('token'))}
-                      icon={
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
-                        </svg>
-                      }
-                    >
-                      การแจ้งเตือน
-                    </NavLink>
-                </>
-              )}
-            </nav>
+                  {/* --- Add Navigation Links Here --- */}
+                  <NavLink href="/dashboard" icon={<IconHome />}>หน้าหลัก</NavLink>
+                  <NavLink href="/transactions/add" icon={<IconAddTransaction />}>เพิ่มรายการ</NavLink> 
+                  <NavLink href="/budget" icon={<IconBudget />}>งบประมาณ</NavLink>
+                  <NavLink href="/currency" icon={<IconExchange />}>อัตราแลกเปลี่ยน</NavLink>
+                  <NavLink href="/analytics" icon={<IconAnalytics />}>สรุปผล</NavLink>
+                  <NavLink 
+                    href="/notifications" 
+                    badge={notificationCount}
+                    onClick={() => resetAndFetchNotifications(localStorage.getItem('token'))}
+                    icon={<IconNotifications />}
+                  >
+                    แจ้งเตือน
+                  </NavLink>
+                  {/* --- End Navigation Links --- */}
+              </nav>
 
-              {/* Footer Section */}
-              <div className="relative p-6 border-t border-slate-700/50 space-y-4">
-              {isLoggedIn && (
-                  <>
-                    {/* Profile Card */}
-                    <Link href="/profile" className="flex items-center p-4 rounded-2xl bg-gradient-to-r from-slate-800/50 to-slate-700/50 hover:from-slate-700/50 hover:to-slate-600/50 transition-all duration-300 group border border-slate-600/30 hover:border-slate-500/50 backdrop-blur-sm">
-                      <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 overflow-hidden flex items-center justify-center text-white font-bold mr-4 group-hover:scale-105 transition-transform shadow-lg shadow-primary/20">
+              {/* Sidebar Footer Section */}
+              <div className="relative p-4 border-t border-slate-700/50 space-y-4 mt-auto">
+                {/* Profile Card */}
+                <Link 
+                  href="/profile" 
+                  className={`flex items-center p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 transition-all duration-300 group border border-slate-600/30 backdrop-blur-sm ${isSidebarCollapsed ? 'justify-center mx-auto' : 'w-full'}`}
+                  title={isSidebarCollapsed ? "Profile" : ""}
+                >
+                  <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 overflow-hidden flex items-center justify-center text-white font-bold mr-3 flex-shrink-0 shadow-lg shadow-primary/20">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} /> // Basic error handle
                     ) : (
-                          <span className="text-xl">{displayName ? displayName.charAt(0).toUpperCase() : 'U'}</span>
+                      <span className="text-lg">{displayName?.charAt(0)?.toUpperCase()}</span>
                     )}
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 border-2 border-slate-800 rounded-full"></div>
+                    {/* Online status indicator */}
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-slate-800 rounded-full"></div> 
                   </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white font-semibold truncate">{displayName || 'ผู้ใช้'}</p>
-                        <p className="text-xs text-slate-400">ตั้งค่าโปรไฟล์</p>
+                  
+                  <div className={`flex-1 min-w-0 transition-opacity duration-300 ${isSidebarCollapsed ? 'hidden absolute' : 'visible'}`}>
+                    <p className="text-sm text-white font-semibold truncate">{displayName || 'User'}</p>
+                    <p className="text-xs text-slate-400">ดูโปรไฟล์</p>
                   </div>
-                      <svg className="w-5 h-5 text-slate-400 group-hover:text-white group-hover:translate-x-1 transition-all" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
-                      </svg>
+                  {!isSidebarCollapsed && (
+                     <IconChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors ml-auto flex-shrink-0" />
+                  )}
                 </Link>
 
-                    {/* Logout Button */}
-                    <button 
-                      onClick={handleLogout} 
-                      className="w-full flex items-center justify-center space-x-3 px-4 py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white transition-all duration-300 group shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30"
-                    >
-                      <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"/>
-                      </svg>
-                      <span className="font-semibold">ออกจากระบบ</span>
-                    </button>
-                  </>
-              )}
-            </div>
-          </aside>
+                {/* Logout Button */}
+                <button 
+                  onClick={handleLogout} 
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-xl bg-red-600/70 hover:bg-red-700/90 text-white transition-all duration-300 shadow-lg shadow-red-500/20 w-full ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                  title={isSidebarCollapsed ? "Logout" : ""}
+                >
+                  <IconLogout />
+                  <span className={`font-semibold transition-opacity duration-300 ${isSidebarCollapsed ? 'hidden absolute' : 'visible'}`}>ออกจากระบบ</span>
+                </button>
+                
+                <p className={`text-xs text-slate-600 text-center mt-2 transition-opacity duration-300 ${isSidebarCollapsed ? 'hidden absolute' : 'visible'}`}>
+                  © 2025 Balanz.IA
+                </p>
+              </div>
+            </aside>
           )}
 
-          {/* Main Content */}
-          <div className={`${isLanding ? 'w-full' : 'w-full md:ml-80'}`}>
-            {/* Desktop Top Bar */}
-        {!isLanding && (
-              <div className="hidden md:block sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/80 shadow-sm">
-                <div className="max-w-7xl mx-auto px-2 py-6">
+          {/* Main Content & Footer Wrapper */}
+          <div className={`flex flex-col flex-1 ${isLoggedIn && !isLanding ? `w-full transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-24' : 'md:ml-80'}` : 'w-full'}`}>
+            
+            {/* Desktop Top Bar (Only if logged in and not landing page) */}
+            {isLoggedIn && !isLanding && (
+              <div className="hidden md:block sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 shadow-sm">
+                <div className="max-w-7xl mx-auto px-6 py-4">
                   <div className="flex items-center justify-between">
+                    
+                    {/* Left: Greeting & Toggle Button */}
                     <div className="flex items-center gap-4">
-                      <div className="flex flex-col">
-                        <h1 className="text-2xl font-bold text-slate-800 mb-1">
-                          Hello {displayName || 'ผู้ใช้'}
-                        </h1>
-                        <p className="text-sm text-slate-500">{new Date().toLocaleDateString('th-TH', { 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })}</p>
-                      </div>
-              </div>
+                       <button 
+                         onClick={toggleSidebar} 
+                         className="p-2 text-slate-500 hover:text-primary transition-colors hover:bg-slate-100 rounded-lg"
+                         aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                       >
+                          {isSidebarCollapsed ? <IconSidebarToggleExpand /> : <IconSidebarToggleCollapse />}
+                       </button>
+
+                       <div>
+                         <h1 className="text-xl font-bold text-slate-800">Hello {displayName || 'User'}</h1>
+                         <p className="text-sm text-slate-500">
+                           {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+                         </p>
+                       </div>
+                    </div>
+                    
+                    {/* Right: Notifications (Desktop) */}
                     <div className="flex items-center gap-3">
                       <Link 
                         href="/notifications" 
                         onClick={() => resetAndFetchNotifications(localStorage.getItem('token'))}
-                        className="relative inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 hover:from-slate-200 hover:to-slate-100 transition-all duration-300 group shadow-md hover:shadow-lg"
+                        className="relative inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all duration-300 shadow-sm group"
+                        aria-label={`Notifications ${notificationCount > 0 ? `(${notificationCount})` : ''}`}
                       >
-                        <svg className="w-6 h-6 text-slate-600 group-hover:text-primary transition-colors group-hover:scale-110 duration-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
-                </svg>
-                {notificationCount > 0 && (
-                          <span className="absolute -top-1 -right-1 flex h-6 w-6">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                            <span className="relative inline-flex h-6 w-6 bg-gradient-to-br from-primary to-primary/80 text-white text-xs rounded-full border-2 border-white items-center justify-center font-bold shadow-lg">
-                              {notificationCount}
+                        <IconNotifications className="w-5 h-5 text-slate-600 group-hover:text-primary transition-colors" />
+                        {notificationCount > 0 && (
+                          <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                             <span className="relative inline-flex h-4 w-4 bg-red-600 text-white text-[10px] rounded-full border-2 border-white items-center justify-center font-bold">
+                              {notificationCount > 9 ? '9+' : notificationCount}
                             </span>
                           </span>
-                )}
-              </Link>
+                        )}
+                      </Link>
+                      {/* Add other top bar items here if needed */}
                     </div>
                   </div>
-            </div>
-          </div>
-        )}
+                </div>
+              </div>
+            )}
 
-        {/* Mobile Menu */}
-        <nav
-              className={`md:hidden fixed inset-0 bg-white/98 backdrop-blur-xl p-6 overflow-y-auto z-50 transition-all duration-500 ${
-                isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+            {/* Mobile Menu Overlay */}
+            <nav
+              className={`md:hidden fixed inset-0 bg-white/98 backdrop-blur-xl p-6 overflow-y-auto z-[60] transition-all duration-300 transform ${
+                isMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
               }`}
+              aria-hidden={!isMenuOpen}
             >
               <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#299D91] to-[#1f7a6f] flex items-center justify-center shadow-xl shadow-[#299D91]/30">
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-xl shadow-primary/30`}>
                     <span className="text-white font-bold text-xl">B</span>
                   </div>
                   <div className="flex flex-col">
-                    <h2 className="text-2xl font-bold text-[#191919]">เมนู</h2>
-                    <span className="text-xs text-[#9F9F9F]">นำทาง</span>
+                    <h2 className="text-2xl font-bold text-slate-900">Menu</h2>
+                    <span className="text-xs text-slate-500">Navigation</span>
                   </div>
                 </div>
-            <button
-              onClick={toggleMenu}
-                  className="p-3 rounded-xl bg-[#F3F3F3] hover:bg-[#E8E8E8] text-[#666666] hover:text-[#191919] transition-all duration-300 shadow-md hover:shadow-lg"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
+                <button
+                  onClick={toggleMenu}
+                  className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all duration-300 shadow-sm"
+                  aria-label="Close menu"
+                >
+                  <IconClose />
+                </button>
+              </div>
 
-          {isLoggedIn && (
+              {isLoggedIn && (
                 <div className="flex flex-col space-y-3">
+                  {/* --- Add Mobile Navigation Links Here --- */}
+                  <MobileNavLink href="/dashboard" icon={<IconHome />}>หน้าหลัก</MobileNavLink>
+                  <MobileNavLink href="/transactions/add" icon={<IconAddTransaction />}>เพิ่มรายการ</MobileNavLink> 
+                  <MobileNavLink href="/budget" icon={<IconBudget />}>งบประมาณ</MobileNavLink>
+                  <MobileNavLink href="/currency" icon={<IconExchange />}>อัตราแลกเปลี่ยน</MobileNavLink>
+                  <MobileNavLink href="/analytics" icon={<IconAnalytics />}>สรุปผล</MobileNavLink>
                   <MobileNavLink 
-                href="/"
-                onClick={toggleMenu}
-                    icon={<img src="/icons/grid.png" alt="" className="w-6 h-6" />}
+                    href="/notifications" 
+                    badge={notificationCount} 
+                    onClick={() => resetAndFetchNotifications(localStorage.getItem('token'))} 
+                    icon={<IconNotifications />}
                   >
-                    หน้าหลัก
+                    แจ้งเตือน
                   </MobileNavLink>
-                  <MobileNavLink 
-                href="/transactions/add"
-                onClick={toggleMenu}
-                    icon={<img src="/icons/wallet-add.png" alt="" className="w-6 h-6" />}
+                  <MobileNavLink href="/profile" icon={<IconProfile />}>โปรไฟล์</MobileNavLink>
+                  {/* --- End Mobile Navigation Links --- */}
+                  
+                  {/* Logout Button (Mobile) */}
+                  <button
+                    onClick={() => { handleLogout(); closeMenu(); }}
+                    className="flex items-center w-full space-x-4 py-4 px-5 rounded-2xl bg-red-500 hover:bg-red-600 text-white transition-all duration-300 shadow-lg shadow-red-500/20 mt-6"
                   >
-                    เพิ่มรายการธุรกรรม
-                  </MobileNavLink>
-                  <MobileNavLink 
-                href="/budget"
-                onClick={toggleMenu}
-                    icon={<img src="/icons/target-dollar.png" alt="" className="w-6 h-6" />}
-                  >
-                    งบประมาณ
-                  </MobileNavLink>
-                  <MobileNavLink 
-                href="/currency"
-                onClick={toggleMenu}
-                    icon={<img src="/icons/exchange.png" alt="" className="w-6 h-6" />}
-                  >
-                    อัตราแลกเปลี่ยน
-                  </MobileNavLink>
-                  <MobileNavLink 
-                href="/analytics"
-                onClick={toggleMenu}
-                    icon={<img src="/icons/bars.png" alt="" className="w-6 h-6" />}
-                  >
-                    สรุปและวิเคราะห์
-                  </MobileNavLink>
-                  <MobileNavLink 
-  href="/notifications"
-                    badge={notificationCount}
-  onClick={() => { resetAndFetchNotifications(localStorage.getItem('token')); toggleMenu(); }}
-                    icon={
-    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
-    </svg>
-                    }
-                  >
-                    การแจ้งเตือน
-                  </MobileNavLink>
-                  <MobileNavLink 
-                href="/profile"
-                onClick={toggleMenu}
-                    icon={
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"/>
-                      </svg>
-                    }
-                  >
-                    โปรไฟล์
-                  </MobileNavLink>
-              <button
-                onClick={() => { handleLogout(); toggleMenu(); }}
-                    className="flex items-center space-x-4 py-4 px-5 rounded-2xl bg-gradient-to-r from-[#ef4444] to-[#dc2626] hover:from-[#dc2626] hover:to-[#b91c1c] text-white transition-all duration-300 shadow-lg shadow-[#ef4444]/20 hover:shadow-xl hover:scale-[1.01]"
-              >
                     <div className="p-3 rounded-xl bg-white/20">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"/>
-                </svg>
+                      <IconLogout className="w-6 h-6"/>
                     </div>
                     <span className="text-lg font-semibold flex-1 text-left">ออกจากระบบ</span>
-              </button>
-            </div>
-          )}
-        </nav>
+                  </button>
+                </div>
+              )}
+            </nav>
 
             {/* Main Content Area */}
-        <main className={`flex-1 ${isLanding ? 'w-full p-0' : 'w-full'}`}>
-          <div className={`${!isLanding && 'min-h-screen'}`}>
-          {children}
-          </div>
-        </main>
+            <main className={`flex-1 ${!isLanding ? 'p-4 sm:p-6 lg:p-8' : ''}`}>
+              {/* Render children (Page Content) */}
+              {children}
+            </main>
 
             {/* Footer */}
-            <footer className={`${isLanding ? 'bg-slate-900 border-transparent' : 'bg-white/50 backdrop-blur-sm border-slate-200'} border-t mt-auto`}>
-              <div className="max-w-7xl mx-auto px-6 py-10">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-6 md:space-y-0">
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-slate-600">
-                    <Link href="/help" className="flex items-center space-x-3 hover:text-primary transition-all duration-300 text-sm font-medium group">
-                      <div className="p-2.5 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-all duration-300 shadow-sm group-hover:shadow-md">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"/>
-                  </svg>
+            <footer className="mt-auto">
+              {isLanding ? (
+                // --- Footer for Landing Page (Dark Theme) ---
+                <div className="bg-slate-900 text-slate-400 p-8 md:p-12">
+                  <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+                    {/* Brand Column */}
+                    <div className="md:col-span-2">
+                      <Link href="/" className="flex items-center space-x-3 group mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-xl shadow-primary/30">
+                          <span className="text-white font-bold text-xl">B</span>
+                        </div>
+                        <span className="font-extrabold text-2xl text-white group-hover:text-primary-light transition-colors">
+                          Balanz<span className="text-slate-300">.IA</span>
+                        </span>
+                      </Link>
+                      <p className="text-sm max-w-md">
+                        ระบบจัดการการเงินอัจฉริยะ ที่ช่วยให้คุณวางแผนงบประมาณ, ติดตามรายรับ-รายจ่าย และวิเคราะห์ข้อมูลการเงินของคุณ
+                      </p>
+                    </div>
+                    {/* Links Column */}
+                    <div>
+                      <h5 className="font-bold text-white text-lg mb-4">Links</h5>
+                      <nav className="flex flex-col space-y-3">
+                        <Link href="/features" className="hover:text-primary transition-colors">Features</Link>
+                        <Link href="/contact" className="hover:text-primary transition-colors">Contact</Link>
+                        <Link href="/help" className="hover:text-primary transition-colors">Help Center</Link>
+                      </nav>
+                    </div>
+                    {/* Social Column */}
+                    <div>
+                      <h5 className="font-bold text-white text-lg mb-4">Follow Us</h5>
+                      <div className="flex space-x-4">
+                        {/* Replace with actual social icons */}
+                        <a href="#" className="w-10 h-10 bg-slate-800 hover:bg-primary rounded-full flex items-center justify-center transition-colors text-white" aria-label="Facebook">F</a>
+                        <a href="#" className="w-10 h-10 bg-slate-800 hover:bg-primary rounded-full flex items-center justify-center transition-colors text-white" aria-label="Twitter">T</a>
                       </div>
-                      <span>ศูนย์ช่วยเหลือ</span>
-                </Link>
-                    <Link href="/contact" className="flex items-center space-x-3 hover:text-primary transition-all duration-300 text-sm font-medium group">
-                      <div className="p-2.5 rounded-xl bg-slate-100 group-hover:bg-primary/10 transition-all duration-300 shadow-sm group-hover:shadow-md">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
-                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
-                  </svg>
+                    </div>
+                  </div>
+                  {/* Copyright Bar */}
+                  <div className="border-t border-slate-700/50 mt-10 pt-6 text-center text-sm">
+                    © {new Date().getFullYear()} <span className="font-bold text-primary">Balanz.IA</span>. All rights reserved.
+                  </div>
+                </div>
+              ) : (
+                // --- Footer for App Pages (Light Theme) ---
+                <div className="bg-white border-t border-slate-200 shadow-inner-top p-6">
+                  <div className="max-w-7xl mx-auto">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
+                      <p className="text-center md:text-left text-slate-500 text-sm">
+                        © {new Date().getFullYear()} <span className="font-bold text-primary">Balanz.IA</span>
+                      </p>
+                      <div className="flex items-center justify-center gap-6 text-slate-600">
+                        <Link href="/help" className="hover:text-primary transition-colors text-sm font-medium">Help Center</Link>
+                        <Link href="/contact" className="hover:text-primary transition-colors text-sm font-medium">Contact Us</Link>
                       </div>
-                  <span>ติดต่อเรา</span>
-                </Link>
-              </div>
-                  <div className="text-center">
-                    <p className="text-slate-500 text-sm">
-                      © 2025 <span className="font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Balanz.IA</span>
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">ระบบจัดการการเงินอัจฉริยะ</p>
-              </div>
-            </div>
-          </div>
-        </footer>
-          </div>
-        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </footer>
+          
+          </div> {/* End Main Content & Footer Wrapper */}
+        </div> {/* End md:flex flex-1 */}
 
+        {/* CSS for custom scrollbar (in Sidebar) */}
         <style jsx global>{`
           .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
+            height: 6px;
           }
           .custom-scrollbar::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
@@ -481,8 +490,12 @@ export default function RootLayout({ children }) {
           .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.3);
           }
+          /* Hide scrollbar when sidebar is collapsed */
+          aside[class*="${SIDEBAR_WIDTH_COLLAPSED}"] .custom-scrollbar::-webkit-scrollbar {
+             display: none;
+          }
         `}</style>
       </body>
-    </html>
+   </html>
   );
 }
